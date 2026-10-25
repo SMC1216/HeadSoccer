@@ -1,0 +1,14 @@
+#BlueJ class context
+#Sat Oct 24 23:43:13 COT 2026
+comment0.target=GameWindow
+comment0.text=\r\n Clase principal para la interfaz gr\u00E1fica del juego Head Soccer.\r\n Pertenece al paquete de presentaci\u00F3n y maneja la ventana base.\r\n
+comment1.target=GameWindow()
+comment1.text=\r\n Constructor de la ventana. Inicializa y distribuye los componentes gr\u00E1ficos.\r\n
+comment2.params=e
+comment2.target=void windowClosing(java.awt.event.WindowEvent)
+comment3.target=void confirmExit()
+comment3.text=\r\n Muestra una ventana de di\u00E1logo (JOptionPane) para confirmar si el usuario desea salir[cite\: 3].\r\n
+comment4.params=args
+comment4.target=void main(java.lang.String[])
+comment4.text=\r\n Andamio de pruebas (Test Scaffold) para previsualizar la interfaz en BlueJ[cite\: 3].\r\n Haz clic derecho sobre la clase compilada y ejecuta main(String[] args) para verla.\r\n
+numComments=5
