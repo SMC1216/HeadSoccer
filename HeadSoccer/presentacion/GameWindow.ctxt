@@ -1,14 +1,36 @@
 #BlueJ class context
-#Sat Oct 24 23:43:13 COT 2026
+#Mon Nov 09 15:04:37 COT 2026
 comment0.target=GameWindow
-comment0.text=\r\n Clase principal para la interfaz gr\u00E1fica del juego Head Soccer.\r\n Pertenece al paquete de presentaci\u00F3n y maneja la ventana base.\r\n
+comment0.text=\r\n Ventana principal (Vista-Controlador) del juego Head Soccer.\r\n Se comunica con MatchManager en el paquete dominio y dibuja la cancha y los personajes.\r\n
 comment1.target=GameWindow()
-comment1.text=\r\n Constructor de la ventana. Inicializa y distribuye los componentes gr\u00E1ficos.\r\n
-comment2.params=e
-comment2.target=void windowClosing(java.awt.event.WindowEvent)
-comment3.target=void confirmExit()
-comment3.text=\r\n Muestra una ventana de di\u00E1logo (JOptionPane) para confirmar si el usuario desea salir[cite\: 3].\r\n
-comment4.params=args
-comment4.target=void main(java.lang.String[])
-comment4.text=\r\n Andamio de pruebas (Test Scaffold) para previsualizar la interfaz en BlueJ[cite\: 3].\r\n Haz clic derecho sobre la clase compilada y ejecuta main(String[] args) para verla.\r\n
-numComments=5
+comment10.target=void prepareControllerMenu()
+comment11.target=void prepareGameController()
+comment11.text=\r\n Conecta el KeyListener para mover al Jugador 1 y el Timer que actualiza las f\u00EDsicas.\r\n
+comment12.params=e
+comment12.target=void keyPressed(java.awt.event.KeyEvent)
+comment13.params=e
+comment13.target=void keyReleased(java.awt.event.KeyEvent)
+comment14.target=void reiniciarJuego()
+comment15.target=void abrirJuego()
+comment16.target=void salvarJuego()
+comment17.target=void cambiarColorCancha()
+comment18.target=void salir()
+comment19.params=args
+comment19.target=void main(java.lang.String[])
+comment2.target=void prepareView()
+comment2.text=\r\n Inicializa el dise\u00F1o general de la ventana (BorderLayout) y sus paneles.\r\n
+comment3.target=void prepareViewMenu()
+comment3.text=\r\n Construye el men\u00FA superior con Archivo y Edici\u00F3n.\r\n
+comment4.target=void prepareViewScoreboard()
+comment4.text=\r\n Construye el marcador superior (NORTH) con puntaje, reloj y barras de poder.\r\n
+comment5.target=void prepareViewBoard()
+comment5.text=\r\n Inicializa el lienzo central donde se dibujan la cancha, arcos, mu\u00F1ecos y bal\u00F3n.\r\n
+comment6.target=void prepareViewControls()
+comment6.text=\r\n Construye el panel inferior (SOUTH) con botones y gu\u00EDa de teclado.\r\n
+comment7.target=void refresh()
+comment7.text=\r\n Actualiza los textos del marcador y repinta el lienzo de la cancha.\r\n
+comment8.target=void prepareController()
+comment8.text=\r\n Configura todos los oyentes de ventana, men\u00FA, botones, teclado y temporizador.\r\n
+comment9.params=e
+comment9.target=void windowClosing(java.awt.event.WindowEvent)
+numComments=20

@@ -1,0 +1,9 @@
+#BlueJ class context
+#Mon Nov 09 15:12:56 COT 2026
+comment0.target=BotAI
+comment0.text=\r\n Representa al oponente controlado autom\u00E1ticamente por el computador.\r\n
+comment1.params=x y difficultyLevel
+comment1.target=BotAI(double, double, int)
+comment2.params=ball
+comment2.target=void calculateMove(Ball)
+numComments=3

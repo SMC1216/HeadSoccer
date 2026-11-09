@@ -1,0 +1,8 @@
+#BlueJ class context
+#Mon Nov 09 15:07:51 COT 2026
+comment0.target=Teleport
+comment0.text=\r\n Habilidad especial que teletransporta al personaje frente al bal\u00F3n.\r\n
+comment1.target=Teleport()
+comment2.params=caster ball
+comment2.target=void activate(java.lang.Character, Ball)
+numComments=3

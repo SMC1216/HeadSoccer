@@ -1,0 +1,8 @@
+#BlueJ class context
+#Mon Nov 09 15:10:25 COT 2026
+comment0.target=FireStrike
+comment0.text=\r\n Habilidad especial que envuelve el bal\u00F3n en fuego y lo dispara a gran velocidad.\r\n
+comment1.target=FireStrike()
+comment2.params=caster ball
+comment2.target=void activate(Character, Ball)
+numComments=3

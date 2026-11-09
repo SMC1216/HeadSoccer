@@ -1,0 +1,27 @@
+#BlueJ class context
+#Mon Nov 09 15:08:37 COT 2026
+comment0.target=Character
+comment0.text=\r\n Clase abstracta que representa a un personaje (mu\u00F1eco) dentro de la cancha.\r\n
+comment1.params=x y width height specialAbility facingRight
+comment1.target=Character(double, double, int, int, Ability, boolean)
+comment10.target=boolean isFacingRight()
+comment11.params=facingRight
+comment11.target=void setFacingRight(boolean)
+comment12.target=int getSpecialMeter()
+comment13.params=specialMeter
+comment13.target=void setSpecialMeter(int)
+comment14.target=Ability getSpecialAbility()
+comment2.params=direction
+comment2.target=void move(int)
+comment3.target=void jump()
+comment4.params=ball
+comment4.target=void kick(Ball)
+comment5.params=ball
+comment5.target=void useSpecial(Ball)
+comment6.params=amount
+comment6.target=void gainSpecial(int)
+comment7.target=void updatePosition()
+comment8.target=Bounds getBounds()
+comment9.params=other
+comment9.target=void onCollision(ICollidable)
+numComments=15
