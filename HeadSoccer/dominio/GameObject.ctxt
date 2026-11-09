@@ -1,0 +1,25 @@
+#BlueJ class context
+#Mon Nov 09 12:21:24 COT 2026
+comment0.target=GameObject
+comment0.text=\r\n Clase abstracta base para cualquier entidad m\u00F3vil o posicionable dentro de la cancha.\r\n Encapsula la posici\u00F3n y el tama\u00F1o aplicando ocultamiento de informaci\u00F3n.\r\n
+comment1.params=x y width height
+comment1.target=GameObject(double, double, int, int)
+comment1.text=\r\n Constructor base para inicializar posici\u00F3n y dimensiones.\r\n @param x Posici\u00F3n inicial en el eje horizontal.\r\n @param y Posici\u00F3n inicial en el eje vertical.\r\n @param width Ancho del objeto en unidades l\u00F3gicas.\r\n @param height Alto del objeto en unidades l\u00F3gicas.\r\n
+comment10.target=int getHeight()
+comment11.params=height
+comment11.target=void setHeight(int)
+comment2.target=void updatePosition()
+comment2.text=\r\n M\u00E9todo abstracto que obliga a las subclases a definir c\u00F3mo actualizan\r\n su posici\u00F3n en cada fotograma del partido.\r\n
+comment3.params=newX newY
+comment3.target=void setPosition(double, double)
+comment3.text=\r\n Permite reposicionar el objeto directamente (\u00FAtil al reiniciar tras un gol).\r\n @param newX Nueva coordenada X.\r\n @param newY Nueva coordenada Y.\r\n
+comment4.target=double getX()
+comment5.params=x
+comment5.target=void setX(double)
+comment6.target=double getY()
+comment7.params=y
+comment7.target=void setY(double)
+comment8.target=int getWidth()
+comment9.params=width
+comment9.target=void setWidth(int)
+numComments=12

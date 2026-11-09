@@ -1,0 +1,34 @@
+#BlueJ class context
+#Mon Nov 09 12:33:57 COT 2026
+comment0.target=Ball
+comment0.text=\r\n Representa el bal\u00F3n del partido.\r\n Hereda sus coordenadas de GameObject e implementa ICollidable para rebotar.\r\n
+comment1.params=x y size
+comment1.target=Ball(double, double, int)
+comment1.text=\r\n Constructor del bal\u00F3n.\r\n @param x Posici\u00F3n horizontal inicial.\r\n @param y Posici\u00F3n vertical inicial.\r\n @param size Di\u00E1metro del bal\u00F3n.\r\n
+comment10.target=double getVelocityY()
+comment11.params=velocityY
+comment11.target=void setVelocityY(double)
+comment12.target=double getBounceFactor()
+comment13.params=bounceFactor
+comment13.target=void setBounceFactor(double)
+comment14.target=boolean isSuperShot()
+comment15.params=superShot
+comment15.target=void setSuperShot(boolean)
+comment2.target=void applyGravity()
+comment2.text=\r\n Aplica la aceleraci\u00F3n de la gravedad a la velocidad vertical del bal\u00F3n.\r\n
+comment3.params=forceX forceY
+comment3.target=void addForce(double, double)
+comment3.text=\r\n A\u00F1ade un impulso o fuerza al bal\u00F3n (al ser pateado, cabeceado o recibir un poder).\r\n @param forceX Fuerza horizontal (positiva hacia la derecha, negativa hacia la izquierda).\r\n @param forceY Fuerza vertical (negativa impulsa hacia arriba).\r\n
+comment4.target=void updatePosition()
+comment4.text=\r\n Actualiza la posici\u00F3n del bal\u00F3n en cada fotograma, aplicando gravedad,\r\n fricci\u00F3n del aire y rebotes contra el suelo, techo y l\u00EDmites laterales.\r\n
+comment5.params=startX startY
+comment5.target=void resetBall(double, double)
+comment5.text=\r\n Detiene por completo el bal\u00F3n y lo ubica en las coordenadas indicadas (tras un gol).\r\n
+comment6.target=Bounds getBounds()
+comment7.params=other
+comment7.target=void onCollision(ICollidable)
+comment7.text=\r\n Gestiona el rebote f\u00EDsico cuando el bal\u00F3n choca con otro objeto colisionable\r\n (por ejemplo, el cuerpo o la cabeza de un personaje o el travesa\u00F1o).\r\n
+comment8.target=double getVelocityX()
+comment9.params=velocityX
+comment9.target=void setVelocityX(double)
+numComments=16
