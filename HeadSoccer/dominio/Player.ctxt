@@ -1,5 +1,5 @@
 #BlueJ class context
-#Mon Nov 09 15:09:26 COT 2026
+#Thu Nov 12 08:21:26 COT 2026
 comment0.target=Player
 comment0.text=\r\n Representa al jugador controlado mediante el teclado.\r\n
 comment1.params=playerName x y

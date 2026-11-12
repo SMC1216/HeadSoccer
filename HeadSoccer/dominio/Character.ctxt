@@ -1,5 +1,5 @@
 #BlueJ class context
-#Mon Nov 09 15:08:37 COT 2026
+#Thu Nov 12 08:21:26 COT 2026
 comment0.target=Character
 comment0.text=\r\n Clase abstracta que representa a un personaje (mu\u00F1eco) dentro de la cancha.\r\n
 comment1.params=x y width height specialAbility facingRight

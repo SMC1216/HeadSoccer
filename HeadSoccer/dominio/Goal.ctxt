@@ -1,5 +1,5 @@
 #BlueJ class context
-#Mon Nov 09 13:13:27 COT 2026
+#Thu Nov 12 08:21:26 COT 2026
 comment0.target=Goal
 comment0.text=\r\n Representa una porter\u00EDa (arco) dentro de la cancha.\r\n Implementa ICollidable para evaluar si el bal\u00F3n ingresa y anotar gol.\r\n
 comment1.params=side x y width height

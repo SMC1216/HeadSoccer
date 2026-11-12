@@ -1,11 +1,11 @@
 #BlueJ class context
-#Mon Nov 09 15:05:51 COT 2026
+#Thu Nov 12 08:21:26 COT 2026
 comment0.target=Ability
 comment0.text=\r\n Clase abstracta para las habilidades especiales de los personajes.\r\n
 comment1.params=cooldown duration
 comment1.target=Ability(int, int)
 comment2.params=caster ball
-comment2.target=void activate(java.lang.Character, Ball)
+comment2.target=void activate(Character, Ball)
 comment3.target=boolean isActive()
 comment4.params=active
 comment4.target=void setActive(boolean)

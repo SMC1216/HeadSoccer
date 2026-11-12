@@ -14,7 +14,7 @@ public abstract class Ability {
         this.isActive = false;
     }
 
-    public abstract void activate(Character caster, Ball ball);
+    public abstract void activate(dominio.Character caster, Ball ball);
 
     public boolean isActive() { return isActive; }
     public void setActive(boolean active) { this.isActive = active; }
