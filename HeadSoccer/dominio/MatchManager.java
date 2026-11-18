@@ -173,7 +173,7 @@ public class MatchManager implements Serializable {
         } else if (scorePlayer2 > scorePlayer1) {
             return "¡VICTORIA PARA EL BOT AI!";
         } else {
-            return "¡EMPATE TÉCNICO!";
+            return "¡EMPATE!";
         }
     }
 
