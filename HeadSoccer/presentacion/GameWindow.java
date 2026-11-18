@@ -64,8 +64,9 @@ public class GameWindow extends JFrame {
 
         prepareViewMenu();
         prepareViewScoreboard();
-        prepareViewBoard();
         prepareViewControls();
+        prepareViewBoard();
+        refresh();
     }
 
     /**
@@ -164,7 +165,6 @@ public class GameWindow extends JFrame {
         boardPanel.setPreferredSize(new Dimension(900, 480));
         boardPanel.setFocusable(true);
         add(boardPanel, BorderLayout.CENTER);
-        refresh();
     }
 
     /**
@@ -205,21 +205,25 @@ public class GameWindow extends JFrame {
         scoreLabel.setText(match.getScorePlayer1() + "  -  " + match.getScorePlayer2());
         timerLabel.setText("Tiempo: " + match.getTimeRemaining() + "s");
 
-        if ("FINISHED".equals(match.getMatchState())) {
+        boolean terminado = "FINISHED".equals(match.getMatchState());
+        boolean pausado = "PAUSED".equals(match.getMatchState());
+
+        if (terminado) {
             stateLabel.setText("[ FINALIZADO ]");
             stateLabel.setForeground(Color.RED);
-            btnPause.setEnabled(false);
-            btnSpecial.setEnabled(false);
-        } else if ("PAUSED".equals(match.getMatchState())) {
+        } else if (pausado) {
             stateLabel.setText("[ PAUSADO ]");
             stateLabel.setForeground(Color.ORANGE);
-            btnPause.setEnabled(true);
-            btnSpecial.setEnabled(true);
         } else {
             stateLabel.setText("[ JUGANDO ]");
             stateLabel.setForeground(new Color(100, 255, 100));
-            btnPause.setEnabled(true);
-            btnSpecial.setEnabled(true);
+        }
+
+        if (btnPause != null) {
+            btnPause.setEnabled(!terminado);
+        }
+        if (btnSpecial != null) {
+            btnSpecial.setEnabled(!terminado);
         }
 
         int sp1 = match.getPlayer1().getSpecialMeter();
