@@ -1,10 +1,15 @@
 package dominio;
 
+import java.io.File;
+import java.io.Serializable;
+
 /**
  * Clase coordinadora del dominio que administra el estado del partido,
  * las físicas, las colisiones y el marcador.
  */
-public class MatchManager {
+public class MatchManager implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     private int scorePlayer1;
     private int scorePlayer2;
     private int timeRemaining;
@@ -109,4 +114,23 @@ public class MatchManager {
     public int getScorePlayer2() { return scorePlayer2; }
     public int getTimeRemaining() { return timeRemaining; }
     public String getMatchState() { return matchState; }
+
+    /**
+     * Guarda el estado actual del partido en un archivo usando MatchPersistence.
+     * @param file Archivo destino donde se almacenará el partido.
+     * @throws HeadSoccerException Si ocurre un error de entrada/salida.
+     */
+    public void salvar(File file) throws HeadSoccerException {
+        MatchPersistence.guardar(this, file);
+    }
+
+    /**
+     * Carga un partido guardado desde un archivo usando MatchPersistence.
+     * @param file Archivo origen que contiene la partida guardada.
+     * @return Objeto MatchManager restaurado.
+     * @throws HeadSoccerException Si ocurre un error de lectura o el archivo no existe.
+     */
+    public static MatchManager abrir(File file) throws HeadSoccerException {
+        return MatchPersistence.cargar(file);
+    }
 }

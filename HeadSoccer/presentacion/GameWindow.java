@@ -3,6 +3,7 @@ package presentacion;
 import dominio.Ball;
 import dominio.Character;
 import dominio.Goal;
+import dominio.HeadSoccerException;
 import dominio.MatchManager;
 
 import java.awt.*;
@@ -325,23 +326,76 @@ public class GameWindow extends JFrame {
     }
 
     private void abrirJuego() {
+        boolean estabaJugando = "PLAYING".equals(match.getMatchState());
+        if (estabaJugando) {
+            match.togglePause();
+        }
+
         JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Cargar partida de Head Soccer");
         if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
             File archivo = fileChooser.getSelectedFile();
-            JOptionPane.showMessageDialog(this,
-                "Función ABRIR en construcción.\nArchivo: " + archivo.getName(),
-                "En construcción", JOptionPane.INFORMATION_MESSAGE);
+            try {
+                MatchManager cargado = MatchManager.abrir(archivo);
+                this.match = cargado;
+                if ("PAUSED".equals(match.getMatchState())) {
+                    btnPause.setText("Reanudar Partido");
+                    stateLabel.setText("[ PAUSADO ]");
+                    stateLabel.setForeground(Color.ORANGE);
+                } else if ("PLAYING".equals(match.getMatchState())) {
+                    btnPause.setText("Pausar Partido");
+                    stateLabel.setText("[ JUGANDO ]");
+                    stateLabel.setForeground(new Color(100, 255, 100));
+                } else {
+                    stateLabel.setText("[ FINALIZADO ]");
+                    stateLabel.setForeground(Color.RED);
+                }
+                refresh();
+                JOptionPane.showMessageDialog(this,
+                    "Partida cargada exitosamente desde:\n" + archivo.getName(),
+                    "Carga Exitosa", JOptionPane.INFORMATION_MESSAGE);
+            } catch (HeadSoccerException e) {
+                JOptionPane.showMessageDialog(this,
+                    "No se pudo cargar la partida: " + e.getMessage(),
+                    "Error al Cargar", JOptionPane.ERROR_MESSAGE);
+                if (estabaJugando && "PAUSED".equals(match.getMatchState())) {
+                    match.togglePause();
+                }
+            }
+        } else {
+            if (estabaJugando && "PAUSED".equals(match.getMatchState())) {
+                match.togglePause();
+            }
         }
+        boardPanel.requestFocusInWindow();
     }
 
     private void salvarJuego() {
+        boolean estabaJugando = "PLAYING".equals(match.getMatchState());
+        if (estabaJugando) {
+            match.togglePause();
+        }
+
         JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Guardar partida de Head Soccer");
         if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
             File archivo = fileChooser.getSelectedFile();
-            JOptionPane.showMessageDialog(this,
-                "Función SALVAR en construcción.\nArchivo: " + archivo.getName(),
-                "En construcción", JOptionPane.INFORMATION_MESSAGE);
+            try {
+                match.salvar(archivo);
+                JOptionPane.showMessageDialog(this,
+                    "Partida guardada exitosamente en:\n" + archivo.getName(),
+                    "Guardado Exitoso", JOptionPane.INFORMATION_MESSAGE);
+            } catch (HeadSoccerException e) {
+                JOptionPane.showMessageDialog(this,
+                    "No se pudo guardar la partida: " + e.getMessage(),
+                    "Error al Guardar", JOptionPane.ERROR_MESSAGE);
+            }
         }
+
+        if (estabaJugando && "PAUSED".equals(match.getMatchState())) {
+            match.togglePause();
+        }
+        boardPanel.requestFocusInWindow();
     }
 
     private void cambiarColorCancha() {

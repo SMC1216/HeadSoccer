@@ -1,10 +1,14 @@
 package dominio;
 
+import java.io.Serializable;
+
 /**
  * Representa el área rectangular de colisión (hitbox) de un objeto en el dominio.
  * Permite detectar intersecciones físicas sin depender de java.awt.Rectangle.
  */
-public class Bounds {
+public class Bounds implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     private double x;
     private double y;
     private int width;

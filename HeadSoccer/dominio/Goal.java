@@ -1,10 +1,14 @@
 package dominio;
 
+import java.io.Serializable;
+
 /**
  * Representa una portería (arco) dentro de la cancha.
  * Implementa ICollidable para evaluar si el balón ingresa y anotar gol.
  */
-public class Goal implements ICollidable {
+public class Goal implements ICollidable, Serializable {
+    private static final long serialVersionUID = 1L;
+
     private String side; // "LEFT" (Izquierda) o "RIGHT" (Derecha)
     private double x;
     private double y;

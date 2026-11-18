@@ -1,9 +1,13 @@
 package dominio;
 
+import java.io.Serializable;
+
 /**
  * Clase abstracta para las habilidades especiales de los personajes.
  */
-public abstract class Ability {
+public abstract class Ability implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     protected int cooldown;
     protected int duration;
     protected boolean isActive;

@@ -1,10 +1,14 @@
 package dominio;
 
+import java.io.Serializable;
+
 /**
  * Clase abstracta base para cualquier entidad móvil o posicionable dentro de la cancha.
  * Encapsula la posición y el tamaño aplicando ocultamiento de información.
  */
-public abstract class GameObject {
+public abstract class GameObject implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     private double x;
     private double y;
     private int width;
