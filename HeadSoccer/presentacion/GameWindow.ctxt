@@ -1,5 +1,5 @@
 #BlueJ class context
-#Sat Nov 14 18:48:39 COT 2026
+#Wed Nov 18 14:38:21 COT 2026
 comment0.target=GameWindow
 comment0.text=\r\n Ventana principal (Vista-Controlador) del juego Head Soccer.\r\n Se comunica con MatchManager en el paquete dominio y dibuja la cancha y los personajes.\r\n
 comment1.target=GameWindow()
