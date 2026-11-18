@@ -116,6 +116,20 @@ public class MatchManager implements Serializable {
     public String getMatchState() { return matchState; }
 
     /**
+     * Determina el mensaje con el ganador del partido al finalizar el tiempo.
+     * @return Texto descriptivo del resultado del partido.
+     */
+    public String getWinnerMessage() {
+        if (scorePlayer1 > scorePlayer2) {
+            return "¡VICTORIA PARA " + player1.getPlayerName().toUpperCase() + "!";
+        } else if (scorePlayer2 > scorePlayer1) {
+            return "¡VICTORIA PARA EL BOT AI!";
+        } else {
+            return "¡EMPATE!";
+        }
+    }
+
+    /**
      * Guarda el estado actual del partido en un archivo usando MatchPersistence.
      * @param file Archivo destino donde se almacenará el partido.
      * @throws HeadSoccerException Si ocurre un error de entrada/salida.

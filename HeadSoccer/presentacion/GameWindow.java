@@ -205,6 +205,23 @@ public class GameWindow extends JFrame {
         scoreLabel.setText(match.getScorePlayer1() + "  -  " + match.getScorePlayer2());
         timerLabel.setText("Tiempo: " + match.getTimeRemaining() + "s");
 
+        if ("FINISHED".equals(match.getMatchState())) {
+            stateLabel.setText("[ FINALIZADO ]");
+            stateLabel.setForeground(Color.RED);
+            btnPause.setEnabled(false);
+            btnSpecial.setEnabled(false);
+        } else if ("PAUSED".equals(match.getMatchState())) {
+            stateLabel.setText("[ PAUSADO ]");
+            stateLabel.setForeground(Color.ORANGE);
+            btnPause.setEnabled(true);
+            btnSpecial.setEnabled(true);
+        } else {
+            stateLabel.setText("[ JUGANDO ]");
+            stateLabel.setForeground(new Color(100, 255, 100));
+            btnPause.setEnabled(true);
+            btnSpecial.setEnabled(true);
+        }
+
         int sp1 = match.getPlayer1().getSpecialMeter();
         specialBarP1.setValue(sp1);
         specialBarP1.setString(sp1 >= 100 ? "¡LISTO! (Presiona E)" : "Poder: " + sp1 + "%");
@@ -491,6 +508,19 @@ public class GameWindow extends JFrame {
                 g2.setColor(Color.WHITE);
                 g2.setFont(new Font("Arial", Font.BOLD, 34));
                 g2.drawString("PARTIDO EN PAUSA", w / 2 - 165, h / 2);
+            } else if ("FINISHED".equals(match.getMatchState())) {
+                g2.setColor(new Color(0, 0, 0, 160));
+                g2.fillRect(0, 0, w, h);
+                g2.setColor(Color.YELLOW);
+                g2.setFont(new Font("Arial", Font.BOLD, 36));
+                g2.drawString("¡PARTIDO FINALIZADO!", w / 2 - 210, h / 2 - 30);
+                g2.setColor(Color.WHITE);
+                g2.setFont(new Font("Arial", Font.BOLD, 24));
+                String ganador = match.getWinnerMessage();
+                g2.drawString(ganador, w / 2 - 150, h / 2 + 15);
+                g2.setFont(new Font("Arial", Font.PLAIN, 15));
+                g2.setColor(new Color(200, 200, 200));
+                g2.drawString("Presiona 'Reiniciar Partido' para volver a jugar", w / 2 - 160, h / 2 + 55);
             }
         }
 
