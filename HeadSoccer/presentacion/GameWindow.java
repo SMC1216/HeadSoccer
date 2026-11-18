@@ -1,6 +1,7 @@
 package presentacion;
 
 import dominio.Ball;
+import dominio.BotAI;
 import dominio.Character;
 import dominio.Goal;
 import dominio.HeadSoccerException;
@@ -14,36 +15,34 @@ import javax.swing.border.EmptyBorder;
 
 /**
  * Ventana principal (Vista-Controlador) del juego Head Soccer.
- * Se comunica con MatchManager en el paquete dominio y dibuja la cancha y los personajes.
+ * Presenta la cancha a pantalla completa, el marcador superior con HUD de poder,
+ * menú de pausa interactivo con tecla ESC y pantalla de resultados al finalizar.
  */
 public class GameWindow extends JFrame {
 
-    // Referencia al modelo del juego (Dominio)
     private MatchManager match;
 
-    // Elementos de la barra de menú
+    // Elementos de la barra de menú superior
     private JMenuItem itemNuevo, itemAbrir, itemSalvar, itemSalir, itemColor;
+    private JRadioButtonMenuItem itemDifFacil, itemDifNormal, itemDifDificil;
 
-    // Paneles y componentes de la vista
+    // Componentes del HUD
     private JPanel hudPanel;
     private FieldCanvas boardPanel;
-    private JPanel controlPanel;
+    private JPanel footerPanel;
 
     private JLabel scoreLabel;
     private JLabel timerLabel;
     private JLabel stateLabel;
+    private JLabel difficultyLabel;
     private JProgressBar specialBarP1;
     private JProgressBar specialBarP2;
 
-    private JButton btnPause;
-    private JButton btnSpecial;
-    private JButton btnReset;
-
-    // Timers para el ciclo de juego (60 FPS aprox.) y el reloj de 1 segundo
+    // Timers para el ciclo de físicas (~50 FPS) y cronómetro de 1 segundo
     private Timer gameTimer;
     private Timer clockTimer;
 
-    // Color del césped configurable con JColorChooser
+    // Color del césped configurable
     private Color colorCesped = new Color(34, 139, 34);
 
     public GameWindow() {
@@ -53,32 +52,26 @@ public class GameWindow extends JFrame {
         prepareController();
     }
 
-    /**
-     * Inicializa el diseño general de la ventana (BorderLayout) y sus paneles.
-     */
     private void prepareView() {
-        setSize(915, 640);
+        setSize(920, 650);
         setResizable(false);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
 
         prepareViewMenu();
         prepareViewScoreboard();
-        prepareViewControls();
         prepareViewBoard();
+        prepareViewFooter();
         refresh();
     }
 
-    /**
-     * Construye el menú superior con Archivo y Edición.
-     */
     private void prepareViewMenu() {
         JMenuBar menuBar = new JMenuBar();
 
         JMenu menuArchivo = new JMenu("Archivo");
         itemNuevo = new JMenuItem("Nuevo Partido");
-        itemAbrir = new JMenuItem("Abrir");
-        itemSalvar = new JMenuItem("Salvar");
+        itemAbrir = new JMenuItem("Abrir Partida");
+        itemSalvar = new JMenuItem("Salvar Partida");
         itemSalir = new JMenuItem("Salir");
 
         menuArchivo.add(itemNuevo);
@@ -88,21 +81,32 @@ public class GameWindow extends JFrame {
         menuArchivo.addSeparator();
         menuArchivo.add(itemSalir);
 
-        JMenu menuEdicion = new JMenu("Edición");
-        itemColor = new JMenuItem("Cambiar Color Cancha");
+        JMenu menuEdicion = new JMenu("Opciones");
+        itemColor = new JMenuItem("Cambiar Color Césped");
         menuEdicion.add(itemColor);
+        menuEdicion.addSeparator();
+
+        JMenu menuDificultad = new JMenu("Dificultad IA");
+        ButtonGroup bgDif = new ButtonGroup();
+        itemDifFacil = new JRadioButtonMenuItem("Fácil");
+        itemDifNormal = new JRadioButtonMenuItem("Normal", true);
+        itemDifDificil = new JRadioButtonMenuItem("Difícil");
+        bgDif.add(itemDifFacil);
+        bgDif.add(itemDifNormal);
+        bgDif.add(itemDifDificil);
+        menuDificultad.add(itemDifFacil);
+        menuDificultad.add(itemDifNormal);
+        menuDificultad.add(itemDifDificil);
+        menuEdicion.add(menuDificultad);
 
         menuBar.add(menuArchivo);
         menuBar.add(menuEdicion);
         setJMenuBar(menuBar);
     }
 
-    /**
-     * Construye el marcador superior (NORTH) con puntaje, reloj y barras de poder.
-     */
     private void prepareViewScoreboard() {
         hudPanel = new JPanel(new GridLayout(1, 3, 20, 0));
-        hudPanel.setBackground(new Color(25, 30, 45));
+        hudPanel.setBackground(new Color(20, 25, 40));
         hudPanel.setBorder(new EmptyBorder(8, 20, 8, 20));
 
         // Panel Jugador 1
@@ -117,14 +121,14 @@ public class GameWindow extends JFrame {
         p1Box.add(lblP1);
         p1Box.add(specialBarP1);
 
-        // Panel Central (Marcador y Reloj)
+        // Panel Central (Marcador, Reloj, Estado y Dificultad)
         JPanel centerBox = new JPanel(new GridLayout(2, 1));
         centerBox.setOpaque(false);
         scoreLabel = new JLabel("0  -  0", JLabel.CENTER);
         scoreLabel.setForeground(Color.WHITE);
-        scoreLabel.setFont(new Font("Arial", Font.BOLD, 24));
+        scoreLabel.setFont(new Font("Arial", Font.BOLD, 26));
 
-        JPanel subCenter = new JPanel(new FlowLayout(FlowLayout.CENTER, 12, 0));
+        JPanel subCenter = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
         subCenter.setOpaque(false);
         timerLabel = new JLabel("Tiempo: 90s");
         timerLabel.setForeground(Color.YELLOW);
@@ -132,8 +136,13 @@ public class GameWindow extends JFrame {
         stateLabel = new JLabel("[ JUGANDO ]");
         stateLabel.setForeground(new Color(100, 255, 100));
         stateLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        difficultyLabel = new JLabel("(Normal)");
+        difficultyLabel.setForeground(new Color(180, 200, 220));
+        difficultyLabel.setFont(new Font("Arial", Font.PLAIN, 11));
+
         subCenter.add(timerLabel);
         subCenter.add(stateLabel);
+        subCenter.add(difficultyLabel);
 
         centerBox.add(scoreLabel);
         centerBox.add(subCenter);
@@ -157,56 +166,35 @@ public class GameWindow extends JFrame {
         add(hudPanel, BorderLayout.NORTH);
     }
 
-    /**
-     * Inicializa el lienzo central donde se dibujan la cancha, arcos, muñecos y balón.
-     */
     private void prepareViewBoard() {
         boardPanel = new FieldCanvas();
-        boardPanel.setPreferredSize(new Dimension(900, 480));
+        boardPanel.setPreferredSize(new Dimension(900, 510));
         boardPanel.setFocusable(true);
         add(boardPanel, BorderLayout.CENTER);
     }
 
-    /**
-     * Construye el panel inferior (SOUTH) con botones y guía de teclado.
-     */
-    private void prepareViewControls() {
-        controlPanel = new JPanel(new BorderLayout());
-        controlPanel.setBackground(new Color(230, 230, 230));
-        controlPanel.setBorder(new EmptyBorder(5, 10, 5, 10));
-
-        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 2));
-        btnPanel.setOpaque(false);
-
-        btnPause = new JButton("Pausar Partido");
-        btnSpecial = new JButton("Usar Poder (Tecla E)");
-        btnReset = new JButton("Reiniciar Partido");
-
-        btnPanel.add(btnPause);
-        btnPanel.add(btnSpecial);
-        btnPanel.add(btnReset);
+    private void prepareViewFooter() {
+        footerPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        footerPanel.setBackground(new Color(15, 20, 30));
+        footerPanel.setBorder(new EmptyBorder(3, 10, 3, 10));
 
         JLabel infoLabel = new JLabel(
-            "Controles Jugador 1:  [A / D] Mover   |   [W] Saltar   |   [ESPACIO] Patear   |   [E] Poder Especial",
+            "[A / D] Mover  |  [W] Saltar  |  [ESPACIO] Patear  |  [E] Poder Especial  |  [ESC] Menú de Pausa",
             JLabel.CENTER
         );
+        infoLabel.setForeground(new Color(200, 210, 225));
         infoLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        footerPanel.add(infoLabel);
 
-        controlPanel.add(btnPanel, BorderLayout.NORTH);
-        controlPanel.add(infoLabel, BorderLayout.SOUTH);
-
-        add(controlPanel, BorderLayout.SOUTH);
+        add(footerPanel, BorderLayout.SOUTH);
     }
 
-    /**
-     * Actualiza los textos del marcador y repinta el lienzo de la cancha.
-     */
     private void refresh() {
         scoreLabel.setText(match.getScorePlayer1() + "  -  " + match.getScorePlayer2());
         timerLabel.setText("Tiempo: " + match.getTimeRemaining() + "s");
 
-        boolean terminado = "FINISHED".equals(match.getMatchState());
-        boolean pausado = "PAUSED".equals(match.getMatchState());
+        boolean terminado = MatchManager.STATE_FINISHED.equals(match.getMatchState());
+        boolean pausado = MatchManager.STATE_PAUSED.equals(match.getMatchState());
 
         if (terminado) {
             stateLabel.setText("[ FINALIZADO ]");
@@ -219,17 +207,31 @@ public class GameWindow extends JFrame {
             stateLabel.setForeground(new Color(100, 255, 100));
         }
 
-        if (btnPause != null) {
-            btnPause.setEnabled(!terminado);
-        }
-        if (btnSpecial != null) {
-            btnSpecial.setEnabled(!terminado);
+        int dif = match.getDifficultyLevel();
+        if (dif == BotAI.DIFFICULTY_EASY) {
+            difficultyLabel.setText("(Fácil)");
+            itemDifFacil.setSelected(true);
+        } else if (dif == BotAI.DIFFICULTY_HARD) {
+            difficultyLabel.setText("(Difícil)");
+            itemDifDificil.setSelected(true);
+        } else {
+            difficultyLabel.setText("(Normal)");
+            itemDifNormal.setSelected(true);
         }
 
+        // Barra Jugador 1
         int sp1 = match.getPlayer1().getSpecialMeter();
         specialBarP1.setValue(sp1);
-        specialBarP1.setString(sp1 >= 100 ? "¡LISTO! (Presiona E)" : "Poder: " + sp1 + "%");
+        boolean p1Ready = match.getPlayer1().getSpecialAbility() != null && match.getPlayer1().getSpecialAbility().isReady();
+        if (sp1 >= 100 && p1Ready) {
+            specialBarP1.setString("¡LISTO! (Presiona E)");
+        } else if (!p1Ready && match.getPlayer1().getSpecialAbility() != null) {
+            specialBarP1.setString("Enfriando: " + match.getPlayer1().getSpecialAbility().getCooldownRemaining() + "s");
+        } else {
+            specialBarP1.setString("Poder: " + sp1 + "%");
+        }
 
+        // Barra Bot AI
         int sp2 = match.getPlayer2().getSpecialMeter();
         specialBarP2.setValue(sp2);
         specialBarP2.setString("Poder: " + sp2 + "%");
@@ -238,9 +240,6 @@ public class GameWindow extends JFrame {
         boardPanel.repaint();
     }
 
-    /**
-     * Configura todos los oyentes de ventana, menú, botones, teclado y temporizador.
-     */
     private void prepareController() {
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         addWindowListener(new WindowAdapter() {
@@ -255,48 +254,94 @@ public class GameWindow extends JFrame {
     }
 
     private void prepareControllerMenu() {
-        itemSalir.addActionListener(e -> salir());
-        itemNuevo.addActionListener(e -> reiniciarJuego());
-        itemAbrir.addActionListener(e -> abrirJuego());
-        itemSalvar.addActionListener(e -> salvarJuego());
-        itemColor.addActionListener(e -> cambiarColorCancha());
-
-        btnPause.addActionListener(e -> {
-            match.togglePause();
-            if ("PAUSED".equals(match.getMatchState())) {
-                btnPause.setText("Reanudar Partido");
-                stateLabel.setText("[ PAUSADO ]");
-                stateLabel.setForeground(Color.ORANGE);
-            } else {
-                btnPause.setText("Pausar Partido");
-                stateLabel.setText("[ JUGANDO ]");
-                stateLabel.setForeground(new Color(100, 255, 100));
+        itemSalir.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                salir();
             }
-            boardPanel.requestFocusInWindow();
-            refresh();
+        });
+        itemNuevo.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                reiniciarJuego();
+            }
+        });
+        itemAbrir.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                abrirJuego();
+            }
+        });
+        itemSalvar.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                salvarJuego();
+            }
+        });
+        itemColor.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                cambiarColorCancha();
+            }
         });
 
-        btnSpecial.addActionListener(e -> {
-            match.getPlayer1().setSpecialMeter(100);
-            match.getPlayer1().handleInput("SPECIAL", match.getBall());
-            boardPanel.requestFocusInWindow();
-            refresh();
+        itemDifFacil.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                match.setDifficultyLevel(BotAI.DIFFICULTY_EASY);
+                refresh();
+            }
         });
-
-        btnReset.addActionListener(e -> {
-            reiniciarJuego();
-            boardPanel.requestFocusInWindow();
+        itemDifNormal.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                match.setDifficultyLevel(BotAI.DIFFICULTY_NORMAL);
+                refresh();
+            }
+        });
+        itemDifDificil.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                match.setDifficultyLevel(BotAI.DIFFICULTY_HARD);
+                refresh();
+            }
         });
     }
 
-    /**
-     * Conecta el KeyListener para mover al Jugador 1 y el Timer que actualiza las físicas.
-     */
     private void prepareGameController() {
         KeyAdapter keyHandler = new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
                 int code = e.getKeyCode();
+
+                // Tecla ESC para pausar o reanudar
+                if (code == KeyEvent.VK_ESCAPE) {
+                    if (MatchManager.STATE_PLAYING.equals(match.getMatchState())) {
+                        match.pause();
+                    } else if (MatchManager.STATE_PAUSED.equals(match.getMatchState())) {
+                        match.resume();
+                    }
+                    refresh();
+                    return;
+                }
+
+                // Si el partido está pausado o finalizado, no procesar movimientos
+                if (!MatchManager.STATE_PLAYING.equals(match.getMatchState())) {
+                    if (MatchManager.STATE_PAUSED.equals(match.getMatchState())) {
+                        // Atajos numéricos del menú de pausa
+                        if (code == KeyEvent.VK_1) match.resume();
+                        else if (code == KeyEvent.VK_2) salvarJuego();
+                        else if (code == KeyEvent.VK_3) abrirJuego();
+                        else if (code == KeyEvent.VK_4) reiniciarJuego();
+                        else if (code == KeyEvent.VK_5) salir();
+                        refresh();
+                    } else if (MatchManager.STATE_FINISHED.equals(match.getMatchState())) {
+                        if (code == KeyEvent.VK_R || code == KeyEvent.VK_ENTER) reiniciarJuego();
+                        else if (code == KeyEvent.VK_Q) salir();
+                    }
+                    return;
+                }
+
                 if (code == KeyEvent.VK_A || code == KeyEvent.VK_LEFT) {
                     match.getPlayer1().handleInput("LEFT", match.getBall());
                 } else if (code == KeyEvent.VK_D || code == KeyEvent.VK_RIGHT) {
@@ -323,33 +368,39 @@ public class GameWindow extends JFrame {
         boardPanel.addKeyListener(keyHandler);
         this.addKeyListener(keyHandler);
 
-        // Timer de físicas y renderizado (cada 20 ms)
-        gameTimer = new Timer(20, e -> {
-            match.updateFrame();
-            refresh();
+        // Timer de físicas a 50 FPS (cada 20 ms)
+        gameTimer = new Timer(20, new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                match.updateFrame();
+                refresh();
+            }
         });
         gameTimer.start();
 
-        // Timer del reloj del partido (cada 1000 ms = 1 segundo)
-        clockTimer = new Timer(1000, e -> {
-            match.decrementTimer();
-            refresh();
+        // Timer del reloj (cada 1000 ms)
+        clockTimer = new Timer(1000, new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                match.decrementTimer();
+                refresh();
+            }
         });
         clockTimer.start();
     }
 
-    private void reiniciarJuego() {
+    public void reiniciarJuego() {
+        int dif = match.getDifficultyLevel();
         match.startGame();
-        btnPause.setText("Pausar Partido");
-        stateLabel.setText("[ JUGANDO ]");
-        stateLabel.setForeground(new Color(100, 255, 100));
+        match.setDifficultyLevel(dif);
+        boardPanel.requestFocusInWindow();
         refresh();
     }
 
-    private void abrirJuego() {
-        boolean estabaJugando = "PLAYING".equals(match.getMatchState());
+    public void abrirJuego() {
+        boolean estabaJugando = MatchManager.STATE_PLAYING.equals(match.getMatchState());
         if (estabaJugando) {
-            match.togglePause();
+            match.pause();
         }
 
         JFileChooser fileChooser = new JFileChooser();
@@ -359,18 +410,6 @@ public class GameWindow extends JFrame {
             try {
                 MatchManager cargado = MatchManager.abrir(archivo);
                 this.match = cargado;
-                if ("PAUSED".equals(match.getMatchState())) {
-                    btnPause.setText("Reanudar Partido");
-                    stateLabel.setText("[ PAUSADO ]");
-                    stateLabel.setForeground(Color.ORANGE);
-                } else if ("PLAYING".equals(match.getMatchState())) {
-                    btnPause.setText("Pausar Partido");
-                    stateLabel.setText("[ JUGANDO ]");
-                    stateLabel.setForeground(new Color(100, 255, 100));
-                } else {
-                    stateLabel.setText("[ FINALIZADO ]");
-                    stateLabel.setForeground(Color.RED);
-                }
                 refresh();
                 JOptionPane.showMessageDialog(this,
                     "Partida cargada exitosamente desde:\n" + archivo.getName(),
@@ -379,22 +418,18 @@ public class GameWindow extends JFrame {
                 JOptionPane.showMessageDialog(this,
                     "No se pudo cargar la partida: " + e.getMessage(),
                     "Error al Cargar", JOptionPane.ERROR_MESSAGE);
-                if (estabaJugando && "PAUSED".equals(match.getMatchState())) {
-                    match.togglePause();
-                }
+                if (estabaJugando) match.resume();
             }
         } else {
-            if (estabaJugando && "PAUSED".equals(match.getMatchState())) {
-                match.togglePause();
-            }
+            if (estabaJugando) match.resume();
         }
         boardPanel.requestFocusInWindow();
     }
 
-    private void salvarJuego() {
-        boolean estabaJugando = "PLAYING".equals(match.getMatchState());
+    public void salvarJuego() {
+        boolean estabaJugando = MatchManager.STATE_PLAYING.equals(match.getMatchState());
         if (estabaJugando) {
-            match.togglePause();
+            match.pause();
         }
 
         JFileChooser fileChooser = new JFileChooser();
@@ -413,13 +448,13 @@ public class GameWindow extends JFrame {
             }
         }
 
-        if (estabaJugando && "PAUSED".equals(match.getMatchState())) {
-            match.togglePause();
+        if (estabaJugando) {
+            match.resume();
         }
         boardPanel.requestFocusInWindow();
     }
 
-    private void cambiarColorCancha() {
+    public void cambiarColorCancha() {
         Color nuevoColor = JColorChooser.showDialog(this, "Selecciona el color del césped", colorCesped);
         if (nuevoColor != null) {
             colorCesped = nuevoColor;
@@ -427,7 +462,7 @@ public class GameWindow extends JFrame {
         }
     }
 
-    private void salir() {
+    public void salir() {
         int respuesta = JOptionPane.showConfirmDialog(
             this,
             "¿Estás seguro de que deseas salir de Head Soccer?",
@@ -436,17 +471,68 @@ public class GameWindow extends JFrame {
             JOptionPane.QUESTION_MESSAGE
         );
         if (respuesta == JOptionPane.YES_OPTION) {
-            gameTimer.stop();
-            clockTimer.stop();
+            if (gameTimer != null) gameTimer.stop();
+            if (clockTimer != null) clockTimer.stop();
             System.exit(0);
         }
     }
 
     /**
-     * Lienzo personalizado que dibuja la cancha, las porterías, los personajes y el balón
-     * leyendo las coordenadas reales de los objetos del paquete dominio.
+     * Lienzo interactivo donde se dibujan la cancha, arcos, personajes, balón,
+     * menú de pausa flotante y pantalla final de resultados.
      */
     private class FieldCanvas extends JPanel {
+        // Coordenadas de botones del menú de pausa
+        private final Rectangle btnResumeRect = new Rectangle(330, 175, 240, 42);
+        private final Rectangle btnSaveRect = new Rectangle(330, 230, 240, 42);
+        private final Rectangle btnLoadRect = new Rectangle(330, 285, 240, 42);
+        private final Rectangle btnRestartRect = new Rectangle(330, 340, 240, 42);
+        private final Rectangle btnExitRect = new Rectangle(330, 395, 240, 42);
+
+        // Coordenadas de botones de la pantalla de fin de partido
+        private final Rectangle btnPlayAgainRect = new Rectangle(270, 340, 170, 46);
+        private final Rectangle btnQuitRect = new Rectangle(460, 340, 170, 46);
+
+        private Point mousePos = new Point(-1, -1);
+
+        public FieldCanvas() {
+            MouseAdapter mouseHandler = new MouseAdapter() {
+                @Override
+                public void mouseMoved(MouseEvent e) {
+                    mousePos = e.getPoint();
+                    repaint();
+                }
+
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    Point p = e.getPoint();
+
+                    if (MatchManager.STATE_PAUSED.equals(match.getMatchState())) {
+                        if (btnResumeRect.contains(p)) {
+                            match.resume();
+                        } else if (btnSaveRect.contains(p)) {
+                            salvarJuego();
+                        } else if (btnLoadRect.contains(p)) {
+                            abrirJuego();
+                        } else if (btnRestartRect.contains(p)) {
+                            reiniciarJuego();
+                        } else if (btnExitRect.contains(p)) {
+                            salir();
+                        }
+                        refresh();
+                    } else if (MatchManager.STATE_FINISHED.equals(match.getMatchState())) {
+                        if (btnPlayAgainRect.contains(p)) {
+                            reiniciarJuego();
+                        } else if (btnQuitRect.contains(p)) {
+                            salir();
+                        }
+                    }
+                }
+            };
+            addMouseListener(mouseHandler);
+            addMouseMotionListener(mouseHandler);
+        }
+
         @Override
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
@@ -458,26 +544,26 @@ public class GameWindow extends JFrame {
             int groundY = (int) Ball.GROUND_Y;
 
             // 1. Cielo nocturno del estadio y tribunas
-            GradientPaint sky = new GradientPaint(0, 0, new Color(18, 30, 62), 0, groundY, new Color(55, 100, 160));
+            GradientPaint sky = new GradientPaint(0, 0, new Color(15, 25, 55), 0, groundY, new Color(45, 85, 145));
             g2.setPaint(sky);
             g2.fillRect(0, 0, w, groundY);
 
-            // Gradas con público simulado
-            g2.setColor(new Color(35, 45, 70));
-            g2.fillRect(0, groundY - 105, w, 105);
+            // Gradas con público
+            g2.setColor(new Color(30, 40, 65));
+            g2.fillRect(0, groundY - 110, w, 110);
             for (int row = 0; row < 4; row++) {
                 for (int col = 20; col < w - 20; col += 24) {
-                    g2.setColor((col + row) % 2 == 0 ? new Color(215, 70, 70) : new Color(70, 155, 235));
-                    g2.fillOval(col, groundY - 92 + (row * 20), 12, 12);
+                    g2.setColor((col + row) % 2 == 0 ? new Color(220, 65, 65) : new Color(65, 150, 230));
+                    g2.fillOval(col, groundY - 96 + (row * 20), 12, 12);
                 }
             }
 
             // Valla publicitaria
-            g2.setColor(new Color(18, 75, 145));
-            g2.fillRect(0, groundY - 22, w, 22);
+            g2.setColor(new Color(15, 65, 130));
+            g2.fillRect(0, groundY - 24, w, 24);
             g2.setColor(Color.WHITE);
             g2.setFont(new Font("Arial", Font.BOLD, 12));
-            g2.drawString("HEAD SOCCER  -  ARENA DOPO", w / 2 - 90, groundY - 6);
+            g2.drawString("HEAD SOCCER  -  ARENA DOPO", w / 2 - 95, groundY - 7);
 
             // 2. Césped con franjas deportivas
             Color stripeBright = colorCesped.brighter();
@@ -492,40 +578,114 @@ public class GameWindow extends JFrame {
             g2.setStroke(new BasicStroke(3));
             g2.drawLine(0, groundY, w, groundY);
             g2.drawLine(w / 2, groundY, w / 2, h);
-            g2.drawOval(w / 2 - 45, groundY + 10, 90, 40);
+            g2.drawOval(w / 2 - 50, groundY + 10, 100, 45);
 
-            // 3. Dibujar las dos Porterías desde el dominio
+            // 3. Dibujar las Porterías
             drawGoal(g2, match.getLeftGoal(), true);
             drawGoal(g2, match.getRightGoal(), false);
 
-            // 4. Dibujar a los dos Personajes desde el dominio
-            drawCharacter(g2, match.getPlayer1(), new Color(220, 45, 45), "J1");
+            // 4. Dibujar Personajes
+            drawCharacter(g2, match.getPlayer1(), new Color(225, 45, 45), "J1");
             drawCharacter(g2, match.getPlayer2(), new Color(40, 120, 225), "BOT");
 
-            // 5. Dibujar el Balón desde el dominio
+            // 5. Dibujar Balón
             drawBall(g2, match.getBall(), groundY);
 
-            // 6. Mensaje si está en pausa o finalizado
-            if ("PAUSED".equals(match.getMatchState())) {
-                g2.setColor(new Color(0, 0, 0, 140));
-                g2.fillRect(0, 0, w, h);
-                g2.setColor(Color.WHITE);
-                g2.setFont(new Font("Arial", Font.BOLD, 34));
-                g2.drawString("PARTIDO EN PAUSA", w / 2 - 165, h / 2);
-            } else if ("FINISHED".equals(match.getMatchState())) {
-                g2.setColor(new Color(0, 0, 0, 160));
-                g2.fillRect(0, 0, w, h);
-                g2.setColor(Color.YELLOW);
-                g2.setFont(new Font("Arial", Font.BOLD, 36));
-                g2.drawString("¡PARTIDO FINALIZADO!", w / 2 - 210, h / 2 - 30);
-                g2.setColor(Color.WHITE);
-                g2.setFont(new Font("Arial", Font.BOLD, 24));
-                String ganador = match.getWinnerMessage();
-                g2.drawString(ganador, w / 2 - 150, h / 2 + 15);
-                g2.setFont(new Font("Arial", Font.PLAIN, 15));
-                g2.setColor(new Color(200, 200, 200));
-                g2.drawString("Presiona 'Reiniciar Partido' para volver a jugar", w / 2 - 160, h / 2 + 55);
+            // 6. Overlay del Menú de Pausa (tecla ESC)
+            if (MatchManager.STATE_PAUSED.equals(match.getMatchState())) {
+                drawPauseMenu(g2, w, h);
             }
+
+            // 7. Overlay de Fin de Partido (Resultados)
+            if (MatchManager.STATE_FINISHED.equals(match.getMatchState())) {
+                drawResultsScreen(g2, w, h);
+            }
+        }
+
+        private void drawPauseMenu(Graphics2D g2, int w, int h) {
+            // Fondo translúcido
+            g2.setColor(new Color(10, 15, 25, 210));
+            g2.fillRect(0, 0, w, h);
+
+            // Marco del panel modal
+            g2.setColor(new Color(25, 35, 55));
+            g2.fillRoundRect(290, 80, 320, 380, 20, 20);
+            g2.setColor(new Color(255, 215, 0));
+            g2.setStroke(new BasicStroke(3));
+            g2.drawRoundRect(290, 80, 320, 380, 20, 20);
+
+            // Título
+            g2.setColor(Color.WHITE);
+            g2.setFont(new Font("Arial", Font.BOLD, 26));
+            g2.drawString("PARTIDO EN PAUSA", 325, 130);
+            g2.setFont(new Font("Arial", Font.PLAIN, 12));
+            g2.setColor(new Color(180, 195, 215));
+            g2.drawString("Presiona ESC para continuar", 370, 152);
+
+            // Botones interactivos
+            drawMenuButton(g2, btnResumeRect, "1. Reanudar Partido");
+            drawMenuButton(g2, btnSaveRect, "2. Guardar Partida");
+            drawMenuButton(g2, btnLoadRect, "3. Cargar Partida");
+            drawMenuButton(g2, btnRestartRect, "4. Reiniciar Partido");
+            drawMenuButton(g2, btnExitRect, "5. Salir del Juego");
+        }
+
+        private void drawResultsScreen(Graphics2D g2, int w, int h) {
+            g2.setColor(new Color(10, 15, 25, 220));
+            g2.fillRect(0, 0, w, h);
+
+            g2.setColor(new Color(25, 35, 55));
+            g2.fillRoundRect(230, 90, 440, 320, 20, 20);
+            g2.setColor(new Color(255, 215, 0));
+            g2.setStroke(new BasicStroke(3));
+            g2.drawRoundRect(230, 90, 440, 320, 20, 20);
+
+            g2.setColor(new Color(255, 215, 0));
+            g2.setFont(new Font("Arial", Font.BOLD, 30));
+            g2.drawString("¡FIN DEL PARTIDO!", 325, 145);
+
+            g2.setColor(Color.WHITE);
+            g2.setFont(new Font("Arial", Font.BOLD, 38));
+            String score = match.getScorePlayer1() + "   -   " + match.getScorePlayer2();
+            g2.drawString(score, 390, 205);
+
+            g2.setFont(new Font("Arial", Font.BOLD, 22));
+            String ganador = match.getWinnerMessage();
+            if (ganador.contains("VICTORIA PARA JUGADOR 1")) {
+                g2.setColor(new Color(100, 255, 100));
+            } else if (ganador.contains("VICTORIA PARA EL BOT")) {
+                g2.setColor(new Color(255, 100, 100));
+            } else {
+                g2.setColor(new Color(255, 220, 100));
+            }
+            g2.drawString(ganador, 320, 255);
+
+            drawActionButton(g2, btnPlayAgainRect, "Jugar de Nuevo [R]", new Color(40, 160, 60));
+            drawActionButton(g2, btnQuitRect, "Salir [Q]", new Color(180, 50, 50));
+        }
+
+        private void drawMenuButton(Graphics2D g2, Rectangle r, String text) {
+            boolean hover = r.contains(mousePos);
+            g2.setColor(hover ? new Color(50, 95, 160) : new Color(35, 50, 80));
+            g2.fillRoundRect(r.x, r.y, r.width, r.height, 10, 10);
+            g2.setColor(hover ? Color.YELLOW : Color.WHITE);
+            g2.setStroke(new BasicStroke(hover ? 2 : 1));
+            g2.drawRoundRect(r.x, r.y, r.width, r.height, 10, 10);
+
+            g2.setFont(new Font("Arial", Font.BOLD, 14));
+            g2.drawString(text, r.x + 25, r.y + 26);
+        }
+
+        private void drawActionButton(Graphics2D g2, Rectangle r, String text, Color baseColor) {
+            boolean hover = r.contains(mousePos);
+            g2.setColor(hover ? baseColor.brighter() : baseColor);
+            g2.fillRoundRect(r.x, r.y, r.width, r.height, 12, 12);
+            g2.setColor(Color.WHITE);
+            g2.setStroke(new BasicStroke(hover ? 2 : 1));
+            g2.drawRoundRect(r.x, r.y, r.width, r.height, 12, 12);
+
+            g2.setFont(new Font("Arial", Font.BOLD, 14));
+            g2.drawString(text, r.x + 15, r.y + 28);
         }
 
         private void drawGoal(Graphics2D g2, Goal goal, boolean isLeft) {
@@ -549,9 +709,9 @@ public class GameWindow extends JFrame {
             g2.setStroke(new BasicStroke(5));
             g2.drawLine(x, y, x + gw, y);
             if (isLeft) {
-                g2.drawLine(x, y, x, y + gh);
-            } else {
                 g2.drawLine(x + gw, y, x + gw, y + gh);
+            } else {
+                g2.drawLine(x, y, x, y + gh);
             }
         }
 
@@ -564,7 +724,7 @@ public class GameWindow extends JFrame {
             g2.setColor(new Color(0, 0, 0, 85));
             g2.fillOval(x + 6, (int) Ball.GROUND_Y - 6, 60, 14);
 
-            // Camiseta pequeña
+            // Camiseta
             g2.setColor(teamColor);
             g2.fillRoundRect(x + 20, y + 54, 32, 24, 8, 8);
             g2.setColor(Color.BLACK);
@@ -590,7 +750,7 @@ public class GameWindow extends JFrame {
             g2.setColor(Color.BLACK);
             g2.drawRect(x + 4, y + 12, 62, 10);
 
-            // Ojo mirando hacia la dirección activa
+            // Ojo
             int eyeX = right ? x + 45 : x + 12;
             g2.setColor(Color.WHITE);
             g2.fillOval(eyeX, y + 25, 13, 13);
@@ -609,11 +769,11 @@ public class GameWindow extends JFrame {
             int by = (int) ball.getY();
             int size = ball.getWidth();
 
-            // Sombra del balón en el césped
+            // Sombra en césped
             g2.setColor(new Color(0, 0, 0, 75));
             g2.fillOval(bx + 2, groundY - 4, size - 4, 10);
 
-            // Efecto de fuego cuando se activa FireStrike
+            // Fuego si está activo el supertiro
             if (ball.isSuperShot()) {
                 g2.setColor(new Color(255, 90, 0, 190));
                 g2.fillOval(bx - 10, by - 10, size + 20, size + 20);
@@ -621,14 +781,13 @@ public class GameWindow extends JFrame {
                 g2.fillOval(bx - 5, by - 5, size + 10, size + 10);
             }
 
-            // Esfera del balón
+            // Balón
             g2.setColor(Color.WHITE);
             g2.fillOval(bx, by, size, size);
             g2.setColor(Color.BLACK);
             g2.setStroke(new BasicStroke(2));
             g2.drawOval(bx, by, size, size);
 
-            // Pentágono central y costuras
             g2.fillOval(bx + 12, by + 12, 12, 12);
             g2.drawLine(bx + 18, by + 12, bx + 18, by + 2);
             g2.drawLine(bx + 12, by + 18, bx + 2, by + 14);
@@ -637,7 +796,12 @@ public class GameWindow extends JFrame {
     }
 
     public static void main(String[] args) {
-        GameWindow window = new GameWindow();
-        window.setVisible(true);
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                GameWindow window = new GameWindow();
+                window.setVisible(true);
+            }
+        });
     }
 }

@@ -4,7 +4,8 @@ import java.io.Serializable;
 
 /**
  * Representa una portería (arco) dentro de la cancha.
- * Implementa ICollidable para evaluar si el balón ingresa y anotar gol.
+ * Implementa ICollidable para evaluar si el balón ingresa y anotar gol,
+ * o si rebota elásticamente en los postes y travesaños sin cruzar la meta.
  */
 public class Goal implements ICollidable, Serializable {
     private static final long serialVersionUID = 1L;
@@ -32,19 +33,33 @@ public class Goal implements ICollidable, Serializable {
     }
 
     /**
-     * Verifica si el balón ha ingresado dentro del área válida de gol.
+     * Verifica si el balón ha cruzado la línea de gol válida bajo el travesaño.
+     * Diferencia claramente un balón que golpea el exterior o travesaño de uno que anota.
      * @param ball El balón del partido.
-     * @return true si el balón cruzó la línea de gol bajo el travesaño, false si no.
+     * @return true si el balón cruzó la línea de gol reglamentaria, false en caso contrario.
      */
     public boolean checkGoal(Ball ball) {
         if (ball == null) {
             return false;
         }
         Bounds ballBounds = ball.getBounds();
-        Bounds goalBounds = this.getBounds();
+        double ballCenterX = ballBounds.getCenterX();
+        double ballCenterY = ballBounds.getCenterY();
 
-        // Hay gol si las cajas se intersectan y el centro del balón está debajo del travesaño
-        return goalBounds.intersects(ballBounds) && ballBounds.getCenterY() > (this.y + 8);
+        // El balón debe encontrarse verticalmente bajo el travesaño y dentro del alto del arco
+        boolean bajoTravesano = ballCenterY > (this.y + 12) && ballCenterY <= (this.y + this.height + 4);
+
+        if (!bajoTravesano) {
+            return false;
+        }
+
+        if ("LEFT".equals(side)) {
+            // Entra si el centro del balón cruza el poste frontal hacia la red izquierda
+            return ballCenterX < (this.x + this.width) && ballBounds.intersects(this.getBounds());
+        } else {
+            // Entra si el centro del balón cruza el poste frontal hacia la red derecha
+            return ballCenterX > this.x && ballBounds.intersects(this.getBounds());
+        }
     }
 
     @Override
@@ -53,21 +68,34 @@ public class Goal implements ICollidable, Serializable {
     }
 
     /**
-     * Si el balón golpea justo el borde superior (el travesaño), rebota hacia afuera.
+     * Gestiona la colisión física contra el travesaño superior o el poste frontal.
+     * Si golpea la estructura superior, rebota elásticamente hacia afuera.
+     * @param other El otro objeto en contacto (balón).
      */
     @Override
     public void onCollision(ICollidable other) {
         if (other instanceof Ball) {
             Ball ball = (Ball) other;
-            // Si golpea la parte alta del travesaño (los primeros 10 píxeles de la portería)
-            if (ball.getY() + ball.getHeight() <= this.y + 14) {
-                ball.setVelocityY(-Math.abs(ball.getVelocityY()) * 0.8);
-                ball.setVelocityX(-ball.getVelocityX() * 0.9);
+            Bounds ballBounds = ball.getBounds();
+
+            // Detectar impacto en la zona superior del travesaño (primeros 14 píxeles)
+            boolean golpeaTravesano = (ballBounds.getY() + ballBounds.getHeight() >= this.y - 4) &&
+                                      (ballBounds.getY() <= this.y + 14);
+
+            if (golpeaTravesano && ballBounds.intersects(this.getBounds())) {
+                ball.setVelocityY(-Math.abs(ball.getVelocityY()) * 0.82);
+                double reboteX = "LEFT".equals(side) ? 5.5 : -5.5;
+                ball.setVelocityX(reboteX);
+
+                // Evitar penetración o atasco en el travesaño
+                if (ball.getY() + ball.getHeight() > this.y) {
+                    ball.setY(this.y - ball.getHeight() - 1);
+                }
             }
         }
     }
 
-    // Getters
+    // Métodos de consulta (Getters)
     public String getSide() { return side; }
     public double getX() { return x; }
     public double getY() { return y; }

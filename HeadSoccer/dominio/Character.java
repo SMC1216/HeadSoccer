@@ -48,10 +48,21 @@ public abstract class Character extends GameObject implements ICollidable {
         }
     }
 
-    public void useSpecial(Ball ball) {
-        if (specialMeter >= 100 && specialAbility != null) {
-            specialAbility.activate(this, ball);
+    public boolean useSpecial(Ball ball) {
+        if (specialMeter >= 100 && specialAbility != null && specialAbility.isReady()) {
+            specialAbility.execute(this, ball);
             specialMeter = 0;
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Actualiza el enfriamiento de la habilidad especial (invocado periódicamente).
+     */
+    public void updateCooldown() {
+        if (specialAbility != null) {
+            specialAbility.updateTick();
         }
     }
 
