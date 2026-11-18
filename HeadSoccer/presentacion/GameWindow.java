@@ -47,25 +47,28 @@ public class GameWindow extends JFrame {
 
     public GameWindow() {
         match = new MatchManager();
-        setTitle("Head Soccer - DOPO");
-        prepareView();
-        prepareController();
+        prepareElements();
+        prepareActions();
     }
 
-    private void prepareView() {
+    /**
+     * Inicializa los componentes visuales de la ventana (Semana 12 - GUI).
+     */
+    private void prepareElements() {
+        setTitle("Head Soccer");
         setSize(920, 650);
         setResizable(false);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
 
-        prepareViewMenu();
-        prepareViewScoreboard();
-        prepareViewBoard();
-        prepareViewFooter();
+        prepareElementsMenu();
+        prepareElementsScore();
+        prepareElementsBoard();
+        prepareElementsFooter();
         refresh();
     }
 
-    private void prepareViewMenu() {
+    private void prepareElementsMenu() {
         JMenuBar menuBar = new JMenuBar();
 
         JMenu menuArchivo = new JMenu("Archivo");
@@ -104,7 +107,7 @@ public class GameWindow extends JFrame {
         setJMenuBar(menuBar);
     }
 
-    private void prepareViewScoreboard() {
+    private void prepareElementsScore() {
         hudPanel = new JPanel(new GridLayout(1, 3, 20, 0));
         hudPanel.setBackground(new Color(20, 25, 40));
         hudPanel.setBorder(new EmptyBorder(8, 20, 8, 20));
@@ -166,14 +169,14 @@ public class GameWindow extends JFrame {
         add(hudPanel, BorderLayout.NORTH);
     }
 
-    private void prepareViewBoard() {
+    private void prepareElementsBoard() {
         boardPanel = new FieldCanvas();
         boardPanel.setPreferredSize(new Dimension(900, 510));
         boardPanel.setFocusable(true);
         add(boardPanel, BorderLayout.CENTER);
     }
 
-    private void prepareViewFooter() {
+    private void prepareElementsFooter() {
         footerPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         footerPanel.setBackground(new Color(15, 20, 30));
         footerPanel.setBorder(new EmptyBorder(3, 10, 3, 10));
@@ -240,7 +243,7 @@ public class GameWindow extends JFrame {
         boardPanel.repaint();
     }
 
-    private void prepareController() {
+    private void prepareActions() {
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         addWindowListener(new WindowAdapter() {
             @Override
@@ -249,11 +252,11 @@ public class GameWindow extends JFrame {
             }
         });
 
-        prepareControllerMenu();
-        prepareGameController();
+        prepareActionsMenu();
+        prepareActionsKeyboard();
     }
 
-    private void prepareControllerMenu() {
+    private void prepareActionsMenu() {
         itemSalir.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -308,7 +311,7 @@ public class GameWindow extends JFrame {
         });
     }
 
-    private void prepareGameController() {
+    private void prepareActionsKeyboard() {
         KeyAdapter keyHandler = new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
