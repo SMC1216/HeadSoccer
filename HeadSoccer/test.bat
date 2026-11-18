@@ -1,7 +1,7 @@
 @echo off
 setlocal
 echo ====================================================
-echo         Ejecutando Pruebas Unitarias
+echo         Ejecutando Pruebas Unitarias - DOPO
 echo ====================================================
 
 REM Si javac o java no estan en el PATH global, buscar en la ruta del JDK de BlueJ
@@ -16,13 +16,18 @@ if %ERRORLEVEL% neq 0 (
     )
 )
 
-where mvn >nul 2>nul
+echo Compilando suite de pruebas...
+javac -encoding UTF-8 -d . -cp ".;C:\Program Files\BlueJ\lib\junit-4.12.jar;C:\Program Files\BlueJ\lib\hamcrest-core-1.3.jar" dominio/HeadSoccerTest.java
+
 if %ERRORLEVEL% equ 0 (
-    echo Detectado Maven en el sistema. Ejecutando con reporte JaCoCo...
-    mvn clean test jacoco:report
-) else (
-    echo Compilando y ejecutando suite JUnit 4...
-    javac -encoding UTF-8 -d . -cp ".;C:\Program Files\BlueJ\lib\junit-4.12.jar;C:\Program Files\BlueJ\lib\hamcrest-core-1.3.jar" dominio/*.java presentacion/*.java
+    echo.
+    echo Corriendo bateria de 42 pruebas automatizadas con JUnit...
+    echo.
     java -cp ".;C:\Program Files\BlueJ\lib\junit-4.12.jar;C:\Program Files\BlueJ\lib\hamcrest-core-1.3.jar" org.junit.runner.JUnitCore dominio.HeadSoccerTest
+) else (
+    echo.
+    echo Error al compilar las pruebas.
 )
+
+echo.
 pause
