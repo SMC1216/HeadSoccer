@@ -22,27 +22,54 @@ import javax.swing.border.EmptyBorder;
  */
 public class GameWindow extends JFrame {
 
+    /** gestor principal de la logica y estado del partido */
     private MatchManager match;
 
+    /** elementos de la barra de menu para juego y apariencia */
     private JMenuItem itemNuevo, itemAbrir, itemSalvar, itemSalir, itemColor;
+
+    /** opciones de seleccion para la dificultad del bot */
     private JRadioButtonMenuItem itemDifFacil, itemDifNormal, itemDifDificil;
 
+    /** panel superior con el marcador, tiempo y barras de poder */
     private JPanel hudPanel;
+
+    /** lienzo grafico donde se dibuja el partido en tiempo real */
     private FieldCanvas boardPanel;
+
+    /** panel inferior con las teclas de control */
     private JPanel footerPanel;
 
+    /** etiqueta del marcador de goles */
     private JLabel scoreLabel;
+
+    /** etiqueta del tiempo restante de partido */
     private JLabel timerLabel;
+
+    /** etiqueta que muestra si el juego esta activo o pausado */
     private JLabel stateLabel;
+
+    /** etiqueta con la dificultad seleccionada */
     private JLabel difficultyLabel;
+
+    /** barra visual del poder especial del jugador 1 */
     private JProgressBar specialBarP1;
+
+    /** barra visual del poder especial del bot */
     private JProgressBar specialBarP2;
 
+    /** temporizador que refresca las fisicas y animaciones a 50 fps */
     private Timer gameTimer;
+
+    /** temporizador que descuenta un segundo al reloj de partido */
     private Timer clockTimer;
 
+    /** color del pasto de la cancha que el usuario puede personalizar */
     private Color colorCesped = new Color(34, 139, 34);
 
+    /**
+     * constructor principal que inicializa los componentes y listeners
+     */
     public GameWindow() {
         match = new MatchManager();
         prepareElements();
@@ -50,7 +77,7 @@ public class GameWindow extends JFrame {
     }
 
     /**
-     * Inicializa los componentes visuales de la ventana (Semana 12 - GUI).
+     * prepara y ensambla todos los elementos visuales de la ventana
      */
     private void prepareElements() {
         setTitle("Head Soccer");
@@ -66,6 +93,9 @@ public class GameWindow extends JFrame {
         refresh();
     }
 
+    /**
+     * construye la barra superior de menus con opciones de archivo y dificultad
+     */
     private void prepareElementsMenu() {
         JMenuBar menuBar = new JMenuBar();
 
@@ -83,15 +113,15 @@ public class GameWindow extends JFrame {
         menuArchivo.add(itemSalir);
 
         JMenu menuEdicion = new JMenu("Opciones");
-        itemColor = new JMenuItem("Cambiar Color Césped");
+        itemColor = new JMenuItem("Cambiar Color Cesped");
         menuEdicion.add(itemColor);
         menuEdicion.addSeparator();
 
         JMenu menuDificultad = new JMenu("Dificultad IA");
         ButtonGroup bgDif = new ButtonGroup();
-        itemDifFacil = new JRadioButtonMenuItem("Fácil");
+        itemDifFacil = new JRadioButtonMenuItem("Facil");
         itemDifNormal = new JRadioButtonMenuItem("Normal", true);
-        itemDifDificil = new JRadioButtonMenuItem("Difícil");
+        itemDifDificil = new JRadioButtonMenuItem("Dificil");
         bgDif.add(itemDifFacil);
         bgDif.add(itemDifNormal);
         bgDif.add(itemDifDificil);
@@ -105,6 +135,9 @@ public class GameWindow extends JFrame {
         setJMenuBar(menuBar);
     }
 
+    /**
+     * crea el panel superior del marcador con barras de vida y tiempo
+     */
     private void prepareElementsScore() {
         hudPanel = new JPanel(new GridLayout(1, 3, 20, 0));
         hudPanel.setBackground(new Color(20, 25, 40));
@@ -164,6 +197,9 @@ public class GameWindow extends JFrame {
         add(hudPanel, BorderLayout.NORTH);
     }
 
+    /**
+     * inicializa el lienzo principal donde ocurre el partido
+     */
     private void prepareElementsBoard() {
         boardPanel = new FieldCanvas();
         boardPanel.setPreferredSize(new Dimension(900, 510));
@@ -171,13 +207,16 @@ public class GameWindow extends JFrame {
         add(boardPanel, BorderLayout.CENTER);
     }
 
+    /**
+     * construye la barra inferior informativa con los atajos del teclado
+     */
     private void prepareElementsFooter() {
         footerPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         footerPanel.setBackground(new Color(15, 20, 30));
         footerPanel.setBorder(new EmptyBorder(3, 10, 3, 10));
 
         JLabel infoLabel = new JLabel(
-            "[A / D] Mover  |  [W] Saltar  |  [ESPACIO] Patear  |  [E] Poder Especial  |  [ESC] Menú de Pausa",
+            "[A / D] Mover  |  [W] Saltar  |  [ESPACIO] Patear  |  [E] Poder Especial  |  [ESC] Menu de Pausa",
             JLabel.CENTER
         );
         infoLabel.setForeground(new Color(200, 210, 225));
@@ -187,6 +226,9 @@ public class GameWindow extends JFrame {
         add(footerPanel, BorderLayout.SOUTH);
     }
 
+    /**
+     * sincroniza y actualiza los componentes del hud con los datos del modelo
+     */
     private void refresh() {
         scoreLabel.setText(match.getScorePlayer1() + "  -  " + match.getScorePlayer2());
         timerLabel.setText("Tiempo: " + match.getTimeRemaining() + "s");
@@ -207,10 +249,10 @@ public class GameWindow extends JFrame {
 
         int dif = match.getDifficultyLevel();
         if (dif == BotAI.DIFFICULTY_EASY) {
-            difficultyLabel.setText("(Fácil)");
+            difficultyLabel.setText("(Facil)");
             itemDifFacil.setSelected(true);
         } else if (dif == BotAI.DIFFICULTY_HARD) {
-            difficultyLabel.setText("(Difícil)");
+            difficultyLabel.setText("(Dificil)");
             itemDifDificil.setSelected(true);
         } else {
             difficultyLabel.setText("(Normal)");
@@ -221,7 +263,7 @@ public class GameWindow extends JFrame {
         specialBarP1.setValue(sp1);
         boolean p1Ready = match.getPlayer1().getSpecialAbility() != null && match.getPlayer1().getSpecialAbility().isReady();
         if (sp1 >= 100 && p1Ready) {
-            specialBarP1.setString("¡LISTO! (Presiona E)");
+            specialBarP1.setString("LISTO! (Presiona E)");
         } else if (!p1Ready && match.getPlayer1().getSpecialAbility() != null) {
             specialBarP1.setString("Enfriando: " + match.getPlayer1().getSpecialAbility().getCooldownRemaining() + "s");
         } else {
@@ -236,6 +278,9 @@ public class GameWindow extends JFrame {
         boardPanel.repaint();
     }
 
+    /**
+     * enlaza los manejadores de eventos de la ventana, menu, teclado y timers
+     */
     private void prepareActions() {
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         addWindowListener(new WindowAdapter() {
@@ -249,6 +294,9 @@ public class GameWindow extends JFrame {
         prepareActionsKeyboard();
     }
 
+    /**
+     * configura las acciones de cada opcion de la barra de menu
+     */
     private void prepareActionsMenu() {
         itemSalir.addActionListener(new ActionListener() {
             @Override
@@ -304,6 +352,9 @@ public class GameWindow extends JFrame {
         });
     }
 
+    /**
+     * escucha las pulsaciones del teclado e inicializa los temporizadores del juego
+     */
     private void prepareActionsKeyboard() {
         KeyAdapter keyHandler = new KeyAdapter() {
             @Override
@@ -380,6 +431,9 @@ public class GameWindow extends JFrame {
         clockTimer.start();
     }
 
+    /**
+     * reinicia el partido conservando la dificultad configurada
+     */
     public void reiniciarJuego() {
         int dif = match.getDifficultyLevel();
         match.startGame();
@@ -388,6 +442,9 @@ public class GameWindow extends JFrame {
         refresh();
     }
 
+    /**
+     * abre un selector de archivos para cargar una partida guardada
+     */
     public void abrirJuego() {
         boolean estabaJugando = MatchManager.STATE_PLAYING.equals(match.getMatchState());
         if (estabaJugando) {
@@ -417,6 +474,9 @@ public class GameWindow extends JFrame {
         boardPanel.requestFocusInWindow();
     }
 
+    /**
+     * abre un selector de archivos para guardar el estado del partido
+     */
     public void salvarJuego() {
         boolean estabaJugando = MatchManager.STATE_PLAYING.equals(match.getMatchState());
         if (estabaJugando) {
@@ -445,18 +505,24 @@ public class GameWindow extends JFrame {
         boardPanel.requestFocusInWindow();
     }
 
+    /**
+     * abre una paleta para seleccionar un nuevo color para el cesped
+     */
     public void cambiarColorCancha() {
-        Color nuevoColor = JColorChooser.showDialog(this, "Selecciona el color del césped", colorCesped);
+        Color nuevoColor = JColorChooser.showDialog(this, "Selecciona el color del cesped", colorCesped);
         if (nuevoColor != null) {
             colorCesped = nuevoColor;
             refresh();
         }
     }
 
+    /**
+     * pide confirmacion al usuario para cerrar el juego y detener los temporizadores
+     */
     public void salir() {
         int respuesta = JOptionPane.showConfirmDialog(
             this,
-            "¿Estás seguro de que deseas salir de Head Soccer?",
+            "Estas seguro de que deseas salir de Head Soccer?",
             "Confirmar salida",
             JOptionPane.YES_NO_OPTION,
             JOptionPane.QUESTION_MESSAGE
@@ -469,21 +535,41 @@ public class GameWindow extends JFrame {
     }
 
     /**
-     * Lienzo interactivo donde se dibujan la cancha, arcos, personajes, balón,
-     * menú de pausa flotante y pantalla final de resultados.
+     * lienzo personalizado que dibuja cancha, arcos, personajes, balon y pantallas flotantes
+     * 
+     * @author gaby-mathias
+     * @version 2026
      */
     private class FieldCanvas extends JPanel {
+        private static final long serialVersionUID = 1L;
+
+        /** area interactiva del boton reanudar */
         private final Rectangle btnResumeRect = new Rectangle(330, 175, 240, 42);
+
+        /** area interactiva del boton guardar */
         private final Rectangle btnSaveRect = new Rectangle(330, 230, 240, 42);
+
+        /** area interactiva del boton cargar */
         private final Rectangle btnLoadRect = new Rectangle(330, 285, 240, 42);
+
+        /** area interactiva del boton reiniciar */
         private final Rectangle btnRestartRect = new Rectangle(330, 340, 240, 42);
+
+        /** area interactiva del boton salir */
         private final Rectangle btnExitRect = new Rectangle(330, 395, 240, 42);
 
+        /** area interactiva del boton jugar de nuevo en pantalla final */
         private final Rectangle btnPlayAgainRect = new Rectangle(270, 340, 170, 46);
+
+        /** area interactiva del boton salir en pantalla final */
         private final Rectangle btnQuitRect = new Rectangle(460, 340, 170, 46);
 
+        /** posicion actual del puntero del mouse sobre el lienzo */
         private Point mousePos = new Point(-1, -1);
 
+        /**
+         * constructor del lienzo que registra eventos de movimiento y clics de raton
+         */
         public FieldCanvas() {
             MouseAdapter mouseHandler = new MouseAdapter() {
                 @Override
@@ -522,6 +608,11 @@ public class GameWindow extends JFrame {
             addMouseMotionListener(mouseHandler);
         }
 
+        /**
+         * renderiza toda la escena grafica del partido en pantalla
+         * 
+         * @param g contexto grafico del componente
+         */
         @Override
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
@@ -581,6 +672,13 @@ public class GameWindow extends JFrame {
             }
         }
 
+        /**
+         * dibuja la ventana flotante de opciones cuando el partido esta en pausa
+         * 
+         * @param g2 contexto 2d de dibujo
+         * @param w ancho del canvas
+         * @param h alto del canvas
+         */
         private void drawPauseMenu(Graphics2D g2, int w, int h) {
             g2.setColor(new Color(10, 15, 25, 210));
             g2.fillRect(0, 0, w, h);
@@ -605,6 +703,13 @@ public class GameWindow extends JFrame {
             drawMenuButton(g2, btnExitRect, "5. Salir del Juego");
         }
 
+        /**
+         * dibuja la pantalla final con el resultado y ganador del partido
+         * 
+         * @param g2 contexto 2d de dibujo
+         * @param w ancho del canvas
+         * @param h alto del canvas
+         */
         private void drawResultsScreen(Graphics2D g2, int w, int h) {
             g2.setColor(new Color(10, 15, 25, 220));
             g2.fillRect(0, 0, w, h);
@@ -617,7 +722,7 @@ public class GameWindow extends JFrame {
 
             g2.setColor(new Color(255, 215, 0));
             g2.setFont(new Font("Arial", Font.BOLD, 30));
-            g2.drawString("¡FIN DEL PARTIDO!", 325, 145);
+            g2.drawString("FIN DEL PARTIDO!", 325, 145);
 
             g2.setColor(Color.WHITE);
             g2.setFont(new Font("Arial", Font.BOLD, 38));
@@ -639,6 +744,13 @@ public class GameWindow extends JFrame {
             drawActionButton(g2, btnQuitRect, "Salir [Q]", new Color(180, 50, 50));
         }
 
+        /**
+         * dibuja un boton interactivo con efecto de hover para el menu de pausa
+         * 
+         * @param g2 contexto 2d de dibujo
+         * @param r rectangulo del boton
+         * @param text etiqueta de texto a mostrar
+         */
         private void drawMenuButton(Graphics2D g2, Rectangle r, String text) {
             boolean hover = r.contains(mousePos);
             g2.setColor(hover ? new Color(50, 95, 160) : new Color(35, 50, 80));
@@ -651,6 +763,14 @@ public class GameWindow extends JFrame {
             g2.drawString(text, r.x + 25, r.y + 26);
         }
 
+        /**
+         * dibuja un boton de accion con color base y resaltado al pasar el raton
+         * 
+         * @param g2 contexto 2d de dibujo
+         * @param r rectangulo del boton
+         * @param text texto a mostrar
+         * @param baseColor color principal del boton
+         */
         private void drawActionButton(Graphics2D g2, Rectangle r, String text, Color baseColor) {
             boolean hover = r.contains(mousePos);
             g2.setColor(hover ? baseColor.brighter() : baseColor);
@@ -663,6 +783,13 @@ public class GameWindow extends JFrame {
             g2.drawString(text, r.x + 15, r.y + 28);
         }
 
+        /**
+         * dibuja la red y los postes de una porteria
+         * 
+         * @param g2 contexto 2d de dibujo
+         * @param goal objeto porteria con su posicion
+         * @param isLeft true si es el arco izquierdo, false si es el derecho
+         */
         private void drawGoal(Graphics2D g2, Goal goal, boolean isLeft) {
             int x = (int) goal.getX();
             int y = (int) goal.getY();
@@ -688,6 +815,14 @@ public class GameWindow extends JFrame {
             }
         }
 
+        /**
+         * dibuja un personaje cabezon con su cuerpo, zapato, ojo y etiqueta de equipo
+         * 
+         * @param g2 contexto 2d de dibujo
+         * @param ch personaje a renderizar
+         * @param teamColor color distintivo del equipo
+         * @param tag texto identificador encima del jugador
+         */
         private void drawCharacter(Graphics2D g2, Character ch, Color teamColor, String tag) {
             int x = (int) ch.getX();
             int y = (int) ch.getY();
@@ -730,6 +865,13 @@ public class GameWindow extends JFrame {
             g2.drawString(tag, x + 26, y - 6);
         }
 
+        /**
+         * dibuja el balon con sus detalles y aura especial si lleva super tiro
+         * 
+         * @param g2 contexto 2d de dibujo
+         * @param ball objeto balon con posicion y tamano
+         * @param groundY altura del piso para la sombra
+         */
         private void drawBall(Graphics2D g2, Ball ball, int groundY) {
             int bx = (int) ball.getX();
             int by = (int) ball.getY();
@@ -758,6 +900,11 @@ public class GameWindow extends JFrame {
         }
     }
 
+    /**
+     * metodo de entrada principal para arrancar la interfaz grafica
+     * 
+     * @param args argumentos de la linea de comandos
+     */
     public static void main(String[] args) {
         SwingUtilities.invokeLater(new Runnable() {
             @Override

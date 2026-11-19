@@ -1,8 +1,7 @@
 package dominio;
 
 /**
- * habilidad de tiro de fuego
- * envia el balon a gran velocidad y con efecto hacia el arco
+ * habilidad especial de tiro de fuego
  * 
  * @author gaby-mathias
  * @version 2026
@@ -10,13 +9,23 @@ package dominio;
 public class FireStrike extends Ability {
     private static final long serialVersionUID = 1L;
 
+    /** multiplicador de fuerza para el tiro */
     private double powerMultiplier;
 
+    /**
+     * constructor del tiro de fuego con 10s de cooldown y 3s de duracion
+     */
     public FireStrike() {
         super(10, 3);
         this.powerMultiplier = 18.5;
     }
 
+    /**
+     * activa el tiro potente con fuego hacia el arco contrario
+     * 
+     * @param caster el personaje que lanza el poder
+     * @param ball el balon a disparar
+     */
     @Override
     public void activate(Character caster, Ball ball) {
         if (caster == null || ball == null) {

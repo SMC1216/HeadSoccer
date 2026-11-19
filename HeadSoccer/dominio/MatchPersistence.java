@@ -8,14 +8,20 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
 /**
- * clase que se encarga de guardar y abrir partidas en archivos binarios
- * usamos objectoutputstream y objectinputstream con serializable
+ * clase encargada de guardar y cargar partidas completas en archivos binarios
  * 
  * @author gaby-mathias
  * @version 2026
  */
 public class MatchPersistence {
 
+    /**
+     * guarda un partido en el archivo especificado
+     * 
+     * @param match el objeto matchmanager a guardar
+     * @param file el archivo destino
+     * @throws HeadSoccerException si ocurre error de escritura o parametros nulos
+     */
     public static void guardar(MatchManager match, File file) throws HeadSoccerException {
         if (match == null) {
             throw new HeadSoccerException(HeadSoccerException.PARTIDO_NO_INICIADO);
@@ -46,6 +52,13 @@ public class MatchPersistence {
         }
     }
 
+    /**
+     * lee un archivo de partida y recupera el objeto matchmanager guardado
+     * 
+     * @param file el archivo a cargar
+     * @return el objeto matchmanager reconstruido
+     * @throws HeadSoccerException si el archivo no existe o no se puede leer
+     */
     public static MatchManager cargar(File file) throws HeadSoccerException {
         if (file == null || !file.exists() || !file.canRead()) {
             throw new HeadSoccerException(HeadSoccerException.ARCHIVO_NO_EXISTE);

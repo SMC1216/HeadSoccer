@@ -15,30 +15,45 @@ import java.io.IOException;
  */
 public class HeadSoccerTest {
 
+    /** instancia del administrador del partido usada en cada prueba */
     private MatchManager match;
 
+    /**
+     * inicializa un partido nuevo antes de ejecutar cada prueba unitaria
+     */
     @Before
     public void setUp() {
         match = new MatchManager();
     }
 
-
+    /**
+     * comprueba que el partido inicie con marcador cero a cero
+     */
     @Test
     public void deberiaIniciarMarcadorEnCero() {
         assertEquals(0, match.getScorePlayer1());
         assertEquals(0, match.getScorePlayer2());
     }
 
+    /**
+     * comprueba que el tiempo reglamentario inicial sea noventa segundos
+     */
     @Test
     public void deberiaIniciarTiempoEnNoventaSegundos() {
         assertEquals(90, match.getTimeRemaining());
     }
 
+    /**
+     * comprueba que el estado inicial del partido sea jugando
+     */
     @Test
     public void deberiaIniciarEstadoEnJugando() {
         assertEquals(MatchManager.STATE_PLAYING, match.getMatchState());
     }
 
+    /**
+     * prueba pausar, reanudar y alternar el estado de pausa del partido
+     */
     @Test
     public void deberiaPausarYReanudarPartido() {
         match.pause();
@@ -49,6 +64,9 @@ public class HeadSoccerTest {
         assertEquals(MatchManager.STATE_PAUSED, match.getMatchState());
     }
 
+    /**
+     * comprueba que se creen los jugadores, el balon y las porterias al inicio
+     */
     @Test
     public void deberiaInstanciarTodasLasEntidadesDelPartido() {
         assertNotNull(match.getPlayer1());
@@ -58,7 +76,9 @@ public class HeadSoccerTest {
         assertNotNull(match.getRightGoal());
     }
 
-
+    /**
+     * comprueba el avance del jugador hacia la derecha al recibir movimiento
+     */
     @Test
     public void deberiaMoverJugadorALaDerecha() {
         Player p1 = match.getPlayer1();
@@ -68,6 +88,9 @@ public class HeadSoccerTest {
         assertTrue(p1.getX() > xInicial);
     }
 
+    /**
+     * comprueba el retroceso del jugador hacia la izquierda al recibir movimiento
+     */
     @Test
     public void deberiaMoverJugadorALaIzquierda() {
         Player p1 = match.getPlayer1();
@@ -78,6 +101,9 @@ public class HeadSoccerTest {
         assertTrue(p1.getX() < xInicial);
     }
 
+    /**
+     * comprueba que la velocidad horizontal se anule al soltar la tecla
+     */
     @Test
     public void deberiaDetenerJugadorConComandoStop() {
         Player p1 = match.getPlayer1();
@@ -90,6 +116,9 @@ public class HeadSoccerTest {
         assertEquals(xDetenido, p1.getX(), 0.001);
     }
 
+    /**
+     * comprueba que el personaje gire visualmente segun la direccion donde corre
+     */
     @Test
     public void deberiaCambiarOrientacionSegunDireccion() {
         Player p1 = match.getPlayer1();
@@ -99,6 +128,9 @@ public class HeadSoccerTest {
         assertFalse(p1.isFacingRight());
     }
 
+    /**
+     * comprueba que el salto aplique impulso hacia arriba restando valor en y
+     */
     @Test
     public void deberiaEjecutarSaltoDisminuyendoCoordenadaY() {
         Player p1 = match.getPlayer1();
@@ -108,6 +140,9 @@ public class HeadSoccerTest {
         assertTrue(p1.getY() < ySuelo);
     }
 
+    /**
+     * comprueba que el jugador no pueda salirse por la pared izquierda
+     */
     @Test
     public void deberiaRespetarParedIzquierda() {
         Player p1 = match.getPlayer1();
@@ -116,6 +151,9 @@ public class HeadSoccerTest {
         assertTrue(p1.getX() >= Ball.LEFT_WALL + 50);
     }
 
+    /**
+     * comprueba que el jugador no pueda salirse por la pared derecha
+     */
     @Test
     public void deberiaRespetarParedDerecha() {
         Player p1 = match.getPlayer1();
@@ -124,7 +162,9 @@ public class HeadSoccerTest {
         assertTrue(p1.getX() + p1.getWidth() <= Ball.RIGHT_WALL);
     }
 
-
+    /**
+     * comprueba que la gravedad jale el balon hacia abajo cuando esta flotando
+     */
     @Test
     public void deberiaAplicarGravedadAlBalonEnElAire() {
         Ball b = match.getBall();
@@ -135,6 +175,9 @@ public class HeadSoccerTest {
         assertTrue(b.getY() > 100);
     }
 
+    /**
+     * comprueba que el balon invierta su velocidad vertical al pegar en el piso
+     */
     @Test
     public void deberiaRebotarBalonEnElSuelo() {
         Ball b = match.getBall();
@@ -144,6 +187,9 @@ public class HeadSoccerTest {
         assertTrue(b.getVelocityY() < 0);
     }
 
+    /**
+     * comprueba que cuando la velocidad vertical sea casi nula el balon quede quieto en el suelo
+     */
     @Test
     public void deberiaDetenerReboteEnSueloSiVelocidadEsMinima() {
         Ball b = match.getBall();
@@ -153,6 +199,9 @@ public class HeadSoccerTest {
         assertEquals(0.0, b.getVelocityY(), 0.001);
     }
 
+    /**
+     * comprueba que el balon rebote e invierta su sentido al chocar la pared izquierda
+     */
     @Test
     public void deberiaRebotarBalonEnParedIzquierda() {
         Ball b = match.getBall();
@@ -162,6 +211,9 @@ public class HeadSoccerTest {
         assertTrue(b.getVelocityX() > 0);
     }
 
+    /**
+     * comprueba que el balon rebote e invierta su sentido al chocar la pared derecha
+     */
     @Test
     public void deberiaRebotarBalonEnParedDerecha() {
         Ball b = match.getBall();
@@ -171,6 +223,9 @@ public class HeadSoccerTest {
         assertTrue(b.getVelocityX() < 0);
     }
 
+    /**
+     * comprueba que el balon rebote hacia abajo al tocar el limite superior del campo
+     */
     @Test
     public void deberiaRebotarBalonEnElTecho() {
         Ball b = match.getBall();
@@ -180,6 +235,9 @@ public class HeadSoccerTest {
         assertTrue(b.getVelocityY() > 0);
     }
 
+    /**
+     * comprueba que no se sobrepase la velocidad maxima configurada del balon
+     */
     @Test
     public void deberiaLimitarVelocidadMaximaDelBalon() {
         Ball b = match.getBall();
@@ -188,7 +246,9 @@ public class HeadSoccerTest {
         assertTrue(b.getVelocityY() >= -22.0);
     }
 
-
+    /**
+     * comprueba que una patada mirando a la derecha impulse el balon hacia adelante
+     */
     @Test
     public void deberiaPatearBalonHaciaLaDerecha() {
         Player p1 = match.getPlayer1();
@@ -199,6 +259,9 @@ public class HeadSoccerTest {
         assertTrue(b.getVelocityX() > 0);
     }
 
+    /**
+     * comprueba que una patada mirando a la izquierda impulse el balon hacia atras
+     */
     @Test
     public void deberiaPatearBalonHaciaLaIzquierda() {
         Player p1 = match.getPlayer1();
@@ -209,6 +272,9 @@ public class HeadSoccerTest {
         assertTrue(b.getVelocityX() < 0);
     }
 
+    /**
+     * comprueba que no se afecte el balon si el jugador patea estando muy lejos
+     */
     @Test
     public void deberiaIgnorarPatadaSiBalonEstaFueraDeRango() {
         Player p1 = match.getPlayer1();
@@ -219,6 +285,9 @@ public class HeadSoccerTest {
         assertEquals(0.0, b.getVelocityX(), 0.001);
     }
 
+    /**
+     * comprueba que al chocar cuerpo a cuerpo con el jugador el balon reciba impulso
+     */
     @Test
     public void deberiaModificarVelocidadAlColisionarPersonajeYBalon() {
         Player p1 = match.getPlayer1();
@@ -228,6 +297,9 @@ public class HeadSoccerTest {
         assertNotEquals(0.0, b.getVelocityY(), 0.001);
     }
 
+    /**
+     * comprueba que el personaje gane energia especial cada vez que toca el balon
+     */
     @Test
     public void deberiaIncrementarEnergiaAlColisionarConBalon() {
         Player p1 = match.getPlayer1();
@@ -236,7 +308,9 @@ public class HeadSoccerTest {
         assertTrue(p1.getSpecialMeter() > 20);
     }
 
-
+    /**
+     * comprueba que se sume un punto al jugador 1 al meter el balon en el arco derecho
+     */
     @Test
     public void deberiaAnotarGolEnArcoDerecho() {
         Ball b = match.getBall();
@@ -246,6 +320,9 @@ public class HeadSoccerTest {
         assertEquals(1, match.getScorePlayer1());
     }
 
+    /**
+     * comprueba que se sume un punto al jugador 2 al entrar el balon en el arco izquierdo
+     */
     @Test
     public void deberiaAnotarGolEnArcoIzquierdo() {
         Ball b = match.getBall();
@@ -255,6 +332,9 @@ public class HeadSoccerTest {
         assertEquals(1, match.getScorePlayer2());
     }
 
+    /**
+     * comprueba que tras un gol el balon y los jugadores vuelvan al centro
+     */
     @Test
     public void deberiaReiniciarPosicionesDespuesDeUnGol() {
         Ball b = match.getBall();
@@ -265,6 +345,9 @@ public class HeadSoccerTest {
         assertEquals(180.0, b.getY(), 1.0);
     }
 
+    /**
+     * comprueba el rebote en el travesano superior sin conceder gol
+     */
     @Test
     public void deberiaRebotarEnTravesanoSuperiorSinMarcarGol() {
         Ball b = match.getBall();
@@ -276,6 +359,9 @@ public class HeadSoccerTest {
         assertFalse(rightGoal.checkGoal(b));
     }
 
+    /**
+     * comprueba que no cuente gol si el balon pasa por arriba del travesano
+     */
     @Test
     public void deberiaIgnorarGolSiBalonPasaPorEncimaDelTravesano() {
         Ball b = match.getBall();
@@ -284,7 +370,9 @@ public class HeadSoccerTest {
         assertFalse(rightGoal.checkGoal(b));
     }
 
-
+    /**
+     * comprueba que la barra especial sume puntos y no sobrepase el tope de cien
+     */
     @Test
     public void deberiaAcumularPoderHastaMaximoCien() {
         Player p1 = match.getPlayer1();
@@ -295,6 +383,9 @@ public class HeadSoccerTest {
         assertEquals(100, p1.getSpecialMeter());
     }
 
+    /**
+     * comprueba que al disparar el poder especial la barra se vacie por completo
+     */
     @Test
     public void deberiaConsumirPoderAlUsarHabilidad() {
         Player p1 = match.getPlayer1();
@@ -303,6 +394,9 @@ public class HeadSoccerTest {
         assertEquals(0, p1.getSpecialMeter());
     }
 
+    /**
+     * comprueba que firestrike active el efecto super tiro y lance el balon a gran velocidad
+     */
     @Test
     public void deberiaActivarSuperTiroConFireStrike() {
         Player p1 = match.getPlayer1();
@@ -313,6 +407,9 @@ public class HeadSoccerTest {
         assertTrue(Math.abs(b.getVelocityX()) >= 15.0);
     }
 
+    /**
+     * comprueba que teleport coloque al personaje inmediatamente cerca del balon
+     */
     @Test
     public void deberiaTeletransportarPersonajeCercaDelBalonConTeleport() {
         BotAI bot = match.getPlayer2();
@@ -324,6 +421,9 @@ public class HeadSoccerTest {
         assertTrue(Math.abs(bot.getX() - b.getX()) <= 160);
     }
 
+    /**
+     * comprueba que giant kick lance el balon con fuerte arco ascendente
+     */
     @Test
     public void deberiaImpulsarBalonHaciaArribaConGiantKick() {
         Player p1 = match.getPlayer1();
@@ -335,6 +435,9 @@ public class HeadSoccerTest {
         assertTrue(b.getVelocityY() < 0);
     }
 
+    /**
+     * comprueba que no se pueda volver a tirar la habilidad hasta terminar el tiempo de cooldown
+     */
     @Test
     public void deberiaBloquearUsoDeHabilidadDuranteCooldown() {
         Player p1 = match.getPlayer1();
@@ -354,7 +457,9 @@ public class HeadSoccerTest {
         assertTrue(p1.useSpecial(b));
     }
 
-
+    /**
+     * comprueba la inicializacion y reaccion del bot en modo facil
+     */
     @Test
     public void deberiaConfigurarDificultadFacil() {
         BotAI bot = new BotAI(660, Ball.GROUND_Y - 92, BotAI.DIFFICULTY_EASY);
@@ -366,6 +471,9 @@ public class HeadSoccerTest {
         assertNotNull(bot);
     }
 
+    /**
+     * comprueba la inicializacion y calculo rapido del bot en modo dificil
+     */
     @Test
     public void deberiaConfigurarDificultadDificil() {
         BotAI bot = new BotAI(660, Ball.GROUND_Y - 92, BotAI.DIFFICULTY_HARD);
@@ -376,6 +484,9 @@ public class HeadSoccerTest {
         assertNotNull(bot);
     }
 
+    /**
+     * comprueba que un nivel fuera de rango vuelva al valor por defecto normal
+     */
     @Test
     public void deberiaRestablecerADificultadNormalSiValorEsInvalido() {
         BotAI bot = match.getPlayer2();
@@ -383,7 +494,12 @@ public class HeadSoccerTest {
         assertEquals(BotAI.DIFFICULTY_NORMAL, bot.getDifficultyLevel());
     }
 
-
+    /**
+     * comprueba que la serializacion en disco guarde y recupere el partido con exactitud
+     * 
+     * @throws IOException si falla la creacion del archivo temporal
+     * @throws HeadSoccerException si ocurre error durante el proceso de guardado o lectura
+     */
     @Test
     public void deberiaSalvarYCargarPartidoEnArchivo() throws IOException, HeadSoccerException {
         File tempFile = File.createTempFile("partida_test_40", ".dat");
@@ -403,12 +519,20 @@ public class HeadSoccerTest {
         assertEquals(match.getPlayer1().getSpecialMeter(), recuperado.getPlayer1().getSpecialMeter());
     }
 
+    /**
+     * comprueba que al intentar abrir un archivo que no existe se lance headsoccerexception
+     * 
+     * @throws HeadSoccerException excepcion esperada por archivo inexistente
+     */
     @Test(expected = HeadSoccerException.class)
     public void deberiaLanzarExcepcionAlCargarArchivoInexistente() throws HeadSoccerException {
         File archivoInexistente = new File("archivo_inexistente_99999.dat");
         MatchManager.abrir(archivoInexistente);
     }
 
+    /**
+     * comprueba que el cronometro reste exactamente un segundo por tick
+     */
     @Test
     public void deberiaDecrementarRelojSegundoASegundo() {
         int tiempoInicial = match.getTimeRemaining();
@@ -416,6 +540,9 @@ public class HeadSoccerTest {
         assertEquals(tiempoInicial - 1, match.getTimeRemaining());
     }
 
+    /**
+     * comprueba que al llegar a cero segundos el juego se detenga y calcule el resultado
+     */
     @Test
     public void deberiaFinalizarPartidoYReportarGanadorOEmpate() {
         for (int i = 0; i < 90; i++) {

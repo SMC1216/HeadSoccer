@@ -1,8 +1,7 @@
 package dominio;
 
 /**
- * representa al jugador oponente manejado por el computador
- * tiene tres dificultades: facil, normal y dificil
+ * representa al jugador controlado por el computador con tres niveles de dificultad
  * 
  * @author gaby-mathias
  * @version 2026
@@ -10,14 +9,31 @@ package dominio;
 public class BotAI extends Character {
     private static final long serialVersionUID = 1L;
 
+    /** nivel facil del bot */
     public static final int DIFFICULTY_EASY = 1;
+
+    /** nivel normal del bot */
     public static final int DIFFICULTY_NORMAL = 2;
+
+    /** nivel dificil del bot */
     public static final int DIFFICULTY_HARD = 3;
 
+    /** nivel de dificultad actual del bot */
     private int difficultyLevel;
+
+    /** contador para que el bot demore su reaccion en niveles bajos */
     private int reactionDelayCounter;
+
+    /** direccion de movimiento que lleva el bot actualmente */
     private int currentDirection;
 
+    /**
+     * constructor para crear el bot con su dificultad
+     * 
+     * @param x coordenada inicial en x
+     * @param y coordenada inicial en y
+     * @param difficultyLevel nivel de 1 a 3
+     */
     public BotAI(double x, double y, int difficultyLevel) {
         super(x, y, 72, 92, new Teleport(), false);
         this.difficultyLevel = validateDifficulty(difficultyLevel);
@@ -25,6 +41,12 @@ public class BotAI extends Character {
         this.currentDirection = 0;
     }
 
+    /**
+     * metodo privado para asegurarse de que la dificultad este entre 1 y 3
+     * 
+     * @param level numero a comprobar
+     * @return nivel valido
+     */
     private int validateDifficulty(int level) {
         if (level < DIFFICULTY_EASY || level > DIFFICULTY_HARD) {
             return DIFFICULTY_NORMAL;
@@ -32,6 +54,11 @@ public class BotAI extends Character {
         return level;
     }
 
+    /**
+     * decide y ejecuta el movimiento del bot segun el nivel configurado
+     * 
+     * @param ball el balon del juego
+     */
     public void calculateMove(Ball ball) {
         if (ball == null) {
             return;
@@ -53,6 +80,11 @@ public class BotAI extends Character {
         this.setFacingRight(false);
     }
 
+    /**
+     * logica del bot en modo facil con retraso de reaccion
+     * 
+     * @param ball el balon en juego
+     */
     private void calculateMoveEasy(Ball ball) {
         reactionDelayCounter++;
         if (reactionDelayCounter < 6) {
@@ -92,6 +124,11 @@ public class BotAI extends Character {
         }
     }
 
+    /**
+     * logica del bot en modo normal con buen balance entre ataque y defensa
+     * 
+     * @param ball el balon en juego
+     */
     private void calculateMoveNormal(Ball ball) {
         reactionDelayCounter++;
         if (reactionDelayCounter < 2) {
@@ -141,6 +178,11 @@ public class BotAI extends Character {
         }
     }
 
+    /**
+     * logica del bot en modo dificil que calcula la trayectoria futura del balon
+     * 
+     * @param ball el balon en juego
+     */
     private void calculateMoveHard(Ball ball) {
         double ballCenter = ball.getBounds().getCenterX();
         double myCenter = this.getBounds().getCenterX();
@@ -181,10 +223,20 @@ public class BotAI extends Character {
         }
     }
 
+    /**
+     * obtiene la dificultad actual
+     * 
+     * @return numero del 1 al 3
+     */
     public int getDifficultyLevel() {
         return difficultyLevel;
     }
 
+    /**
+     * cambia la dificultad del bot
+     * 
+     * @param difficultyLevel nuevo nivel
+     */
     public void setDifficultyLevel(int difficultyLevel) {
         this.difficultyLevel = validateDifficulty(difficultyLevel);
     }
