@@ -14,19 +14,19 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 
 /**
- * Ventana principal (Vista-Controlador) del juego Head Soccer.
- * Presenta la cancha a pantalla completa, el marcador superior con HUD de poder,
- * menú de pausa interactivo con tecla ESC y pantalla de resultados al finalizar.
+ * ventana principal del juego con swing
+ * maneja los paneles, el canvas del partido, los eventos de teclado y el hud
+ * 
+ * @author gaby-mathias
+ * @version 2026
  */
 public class GameWindow extends JFrame {
 
     private MatchManager match;
 
-    // Elementos de la barra de menú superior
     private JMenuItem itemNuevo, itemAbrir, itemSalvar, itemSalir, itemColor;
     private JRadioButtonMenuItem itemDifFacil, itemDifNormal, itemDifDificil;
 
-    // Componentes del HUD
     private JPanel hudPanel;
     private FieldCanvas boardPanel;
     private JPanel footerPanel;
@@ -38,11 +38,9 @@ public class GameWindow extends JFrame {
     private JProgressBar specialBarP1;
     private JProgressBar specialBarP2;
 
-    // Timers para el ciclo de físicas (~50 FPS) y cronómetro de 1 segundo
     private Timer gameTimer;
     private Timer clockTimer;
 
-    // Color del césped configurable
     private Color colorCesped = new Color(34, 139, 34);
 
     public GameWindow() {
@@ -112,7 +110,6 @@ public class GameWindow extends JFrame {
         hudPanel.setBackground(new Color(20, 25, 40));
         hudPanel.setBorder(new EmptyBorder(8, 20, 8, 20));
 
-        // Panel Jugador 1
         JPanel p1Box = new JPanel(new GridLayout(2, 1, 0, 4));
         p1Box.setOpaque(false);
         JLabel lblP1 = new JLabel("JUGADOR 1 (FireStrike)", JLabel.LEFT);
@@ -124,7 +121,6 @@ public class GameWindow extends JFrame {
         p1Box.add(lblP1);
         p1Box.add(specialBarP1);
 
-        // Panel Central (Marcador, Reloj, Estado y Dificultad)
         JPanel centerBox = new JPanel(new GridLayout(2, 1));
         centerBox.setOpaque(false);
         scoreLabel = new JLabel("0  -  0", JLabel.CENTER);
@@ -150,7 +146,6 @@ public class GameWindow extends JFrame {
         centerBox.add(scoreLabel);
         centerBox.add(subCenter);
 
-        // Panel Bot AI
         JPanel p2Box = new JPanel(new GridLayout(2, 1, 0, 4));
         p2Box.setOpaque(false);
         JLabel lblP2 = new JLabel("BOT AI (Teleport)", JLabel.RIGHT);
@@ -222,7 +217,6 @@ public class GameWindow extends JFrame {
             itemDifNormal.setSelected(true);
         }
 
-        // Barra Jugador 1
         int sp1 = match.getPlayer1().getSpecialMeter();
         specialBarP1.setValue(sp1);
         boolean p1Ready = match.getPlayer1().getSpecialAbility() != null && match.getPlayer1().getSpecialAbility().isReady();
@@ -234,7 +228,6 @@ public class GameWindow extends JFrame {
             specialBarP1.setString("Poder: " + sp1 + "%");
         }
 
-        // Barra Bot AI
         int sp2 = match.getPlayer2().getSpecialMeter();
         specialBarP2.setValue(sp2);
         specialBarP2.setString("Poder: " + sp2 + "%");
@@ -317,7 +310,6 @@ public class GameWindow extends JFrame {
             public void keyPressed(KeyEvent e) {
                 int code = e.getKeyCode();
 
-                // Tecla ESC para pausar o reanudar
                 if (code == KeyEvent.VK_ESCAPE) {
                     if (MatchManager.STATE_PLAYING.equals(match.getMatchState())) {
                         match.pause();
@@ -328,10 +320,8 @@ public class GameWindow extends JFrame {
                     return;
                 }
 
-                // Si el partido está pausado o finalizado, no procesar movimientos
                 if (!MatchManager.STATE_PLAYING.equals(match.getMatchState())) {
                     if (MatchManager.STATE_PAUSED.equals(match.getMatchState())) {
-                        // Atajos numéricos del menú de pausa
                         if (code == KeyEvent.VK_1) match.resume();
                         else if (code == KeyEvent.VK_2) salvarJuego();
                         else if (code == KeyEvent.VK_3) abrirJuego();
@@ -371,7 +361,6 @@ public class GameWindow extends JFrame {
         boardPanel.addKeyListener(keyHandler);
         this.addKeyListener(keyHandler);
 
-        // Timer de físicas a 50 FPS (cada 20 ms)
         gameTimer = new Timer(20, new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -381,7 +370,6 @@ public class GameWindow extends JFrame {
         });
         gameTimer.start();
 
-        // Timer del reloj (cada 1000 ms)
         clockTimer = new Timer(1000, new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -485,14 +473,12 @@ public class GameWindow extends JFrame {
      * menú de pausa flotante y pantalla final de resultados.
      */
     private class FieldCanvas extends JPanel {
-        // Coordenadas de botones del menú de pausa
         private final Rectangle btnResumeRect = new Rectangle(330, 175, 240, 42);
         private final Rectangle btnSaveRect = new Rectangle(330, 230, 240, 42);
         private final Rectangle btnLoadRect = new Rectangle(330, 285, 240, 42);
         private final Rectangle btnRestartRect = new Rectangle(330, 340, 240, 42);
         private final Rectangle btnExitRect = new Rectangle(330, 395, 240, 42);
 
-        // Coordenadas de botones de la pantalla de fin de partido
         private final Rectangle btnPlayAgainRect = new Rectangle(270, 340, 170, 46);
         private final Rectangle btnQuitRect = new Rectangle(460, 340, 170, 46);
 
@@ -546,12 +532,10 @@ public class GameWindow extends JFrame {
             int h = getHeight();
             int groundY = (int) Ball.GROUND_Y;
 
-            // 1. Cielo nocturno del estadio y tribunas
             GradientPaint sky = new GradientPaint(0, 0, new Color(15, 25, 55), 0, groundY, new Color(45, 85, 145));
             g2.setPaint(sky);
             g2.fillRect(0, 0, w, groundY);
 
-            // Gradas con público
             g2.setColor(new Color(30, 40, 65));
             g2.fillRect(0, groundY - 110, w, 110);
             for (int row = 0; row < 4; row++) {
@@ -561,14 +545,12 @@ public class GameWindow extends JFrame {
                 }
             }
 
-            // Valla publicitaria
             g2.setColor(new Color(15, 65, 130));
             g2.fillRect(0, groundY - 24, w, 24);
             g2.setColor(Color.WHITE);
             g2.setFont(new Font("Arial", Font.BOLD, 12));
             g2.drawString("HEAD SOCCER  -  ARENA DOPO", w / 2 - 95, groundY - 7);
 
-            // 2. Césped con franjas deportivas
             Color stripeBright = colorCesped.brighter();
             int stripeWidth = Math.max(1, w / 10);
             for (int i = 0; i < 11; i++) {
@@ -576,48 +558,39 @@ public class GameWindow extends JFrame {
                 g2.fillRect(i * stripeWidth, groundY, stripeWidth, h - groundY);
             }
 
-            // Líneas reglamentarias de la cancha
             g2.setColor(Color.WHITE);
             g2.setStroke(new BasicStroke(3));
             g2.drawLine(0, groundY, w, groundY);
             g2.drawLine(w / 2, groundY, w / 2, h);
             g2.drawOval(w / 2 - 50, groundY + 10, 100, 45);
 
-            // 3. Dibujar las Porterías
             drawGoal(g2, match.getLeftGoal(), true);
             drawGoal(g2, match.getRightGoal(), false);
 
-            // 4. Dibujar Personajes
             drawCharacter(g2, match.getPlayer1(), new Color(225, 45, 45), "J1");
             drawCharacter(g2, match.getPlayer2(), new Color(40, 120, 225), "BOT");
 
-            // 5. Dibujar Balón
             drawBall(g2, match.getBall(), groundY);
 
-            // 6. Overlay del Menú de Pausa (tecla ESC)
             if (MatchManager.STATE_PAUSED.equals(match.getMatchState())) {
                 drawPauseMenu(g2, w, h);
             }
 
-            // 7. Overlay de Fin de Partido (Resultados)
             if (MatchManager.STATE_FINISHED.equals(match.getMatchState())) {
                 drawResultsScreen(g2, w, h);
             }
         }
 
         private void drawPauseMenu(Graphics2D g2, int w, int h) {
-            // Fondo translúcido
             g2.setColor(new Color(10, 15, 25, 210));
             g2.fillRect(0, 0, w, h);
 
-            // Marco del panel modal
             g2.setColor(new Color(25, 35, 55));
             g2.fillRoundRect(290, 80, 320, 380, 20, 20);
             g2.setColor(new Color(255, 215, 0));
             g2.setStroke(new BasicStroke(3));
             g2.drawRoundRect(290, 80, 320, 380, 20, 20);
 
-            // Título
             g2.setColor(Color.WHITE);
             g2.setFont(new Font("Arial", Font.BOLD, 26));
             g2.drawString("PARTIDO EN PAUSA", 325, 130);
@@ -625,7 +598,6 @@ public class GameWindow extends JFrame {
             g2.setColor(new Color(180, 195, 215));
             g2.drawString("Presiona ESC para continuar", 370, 152);
 
-            // Botones interactivos
             drawMenuButton(g2, btnResumeRect, "1. Reanudar Partido");
             drawMenuButton(g2, btnSaveRect, "2. Guardar Partida");
             drawMenuButton(g2, btnLoadRect, "3. Cargar Partida");
@@ -697,7 +669,6 @@ public class GameWindow extends JFrame {
             int gw = goal.getWidth();
             int gh = goal.getHeight();
 
-            // Red cuadriculada
             g2.setColor(new Color(235, 235, 235, 130));
             g2.setStroke(new BasicStroke(1));
             for (int gx = x; gx <= x + gw; gx += 12) {
@@ -707,7 +678,6 @@ public class GameWindow extends JFrame {
                 g2.drawLine(x, gy, x + gw, gy);
             }
 
-            // Postes y travesaño
             g2.setColor(Color.WHITE);
             g2.setStroke(new BasicStroke(5));
             g2.drawLine(x, y, x + gw, y);
@@ -723,37 +693,31 @@ public class GameWindow extends JFrame {
             int y = (int) ch.getY();
             boolean right = ch.isFacingRight();
 
-            // Sombra en el césped
             g2.setColor(new Color(0, 0, 0, 85));
             g2.fillOval(x + 6, (int) Ball.GROUND_Y - 6, 60, 14);
 
-            // Camiseta
             g2.setColor(teamColor);
             g2.fillRoundRect(x + 20, y + 54, 32, 24, 8, 8);
             g2.setColor(Color.BLACK);
             g2.setStroke(new BasicStroke(2));
             g2.drawRoundRect(x + 20, y + 54, 32, 24, 8, 8);
 
-            // Botín / Guayo
             int shoeX = right ? x + 40 : x + 4;
             g2.setColor(new Color(35, 35, 35));
             g2.fillRoundRect(shoeX, y + 74, 28, 16, 8, 8);
             g2.setColor(Color.WHITE);
             g2.drawLine(shoeX + 5, y + 82, shoeX + 20, y + 82);
 
-            // Cabeza grande estilo Head Soccer
             g2.setColor(new Color(255, 218, 185));
             g2.fillOval(x, y, 70, 60);
             g2.setColor(Color.BLACK);
             g2.drawOval(x, y, 70, 60);
 
-            // Cinta deportiva en la frente
             g2.setColor(teamColor);
             g2.fillRect(x + 4, y + 12, 62, 10);
             g2.setColor(Color.BLACK);
             g2.drawRect(x + 4, y + 12, 62, 10);
 
-            // Ojo
             int eyeX = right ? x + 45 : x + 12;
             g2.setColor(Color.WHITE);
             g2.fillOval(eyeX, y + 25, 13, 13);
@@ -761,7 +725,6 @@ public class GameWindow extends JFrame {
             g2.fillOval(right ? eyeX + 5 : eyeX + 2, y + 28, 6, 6);
             g2.drawOval(eyeX, y + 25, 13, 13);
 
-            // Etiqueta sobre la cabeza
             g2.setColor(Color.YELLOW);
             g2.setFont(new Font("Arial", Font.BOLD, 12));
             g2.drawString(tag, x + 26, y - 6);
@@ -772,11 +735,9 @@ public class GameWindow extends JFrame {
             int by = (int) ball.getY();
             int size = ball.getWidth();
 
-            // Sombra en césped
             g2.setColor(new Color(0, 0, 0, 75));
             g2.fillOval(bx + 2, groundY - 4, size - 4, 10);
 
-            // Fuego si está activo el supertiro
             if (ball.isSuperShot()) {
                 g2.setColor(new Color(255, 90, 0, 190));
                 g2.fillOval(bx - 10, by - 10, size + 20, size + 20);
@@ -784,7 +745,6 @@ public class GameWindow extends JFrame {
                 g2.fillOval(bx - 5, by - 5, size + 10, size + 10);
             }
 
-            // Balón
             g2.setColor(Color.WHITE);
             g2.fillOval(bx, by, size, size);
             g2.setColor(Color.BLACK);

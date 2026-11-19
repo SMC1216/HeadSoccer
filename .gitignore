@@ -1,0 +1,12 @@
+*.lock
+*.class
+bin/
+**/bin/
+.settings/
+**/.settings/
+.project
+**/.project
+.classpath
+**/.classpath
+target/
+**/target/

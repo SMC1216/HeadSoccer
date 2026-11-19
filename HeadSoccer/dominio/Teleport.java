@@ -1,9 +1,15 @@
 package dominio;
 
 /**
- * Habilidad especial que teletransporta al personaje frente al balón.
+ * habilidad de teletransporte
+ * mueve al personaje instantaneamente detras de la pelota para rematar o defender
+ * 
+ * @author gaby-mathias
+ * @version 2026
  */
 public class Teleport extends Ability {
+    private static final long serialVersionUID = 1L;
+
     private double offsetDistance;
 
     public Teleport() {
@@ -13,13 +19,19 @@ public class Teleport extends Ability {
 
     @Override
     public void activate(Character caster, Ball ball) {
-        if (caster == null || ball == null) return;
+        if (caster == null || ball == null) {
+            return;
+        }
         this.isActive = true;
         double offset = caster.isFacingRight() ? -offsetDistance : offsetDistance;
         double targetX = ball.getX() + offset;
 
-        if (targetX < Ball.LEFT_WALL + 60) targetX = Ball.LEFT_WALL + 60;
-        if (targetX > Ball.RIGHT_WALL - 130) targetX = Ball.RIGHT_WALL - 130;
+        if (targetX < Ball.LEFT_WALL + 60) {
+            targetX = Ball.LEFT_WALL + 60;
+        }
+        if (targetX > Ball.RIGHT_WALL - 130) {
+            targetX = Ball.RIGHT_WALL - 130;
+        }
 
         caster.setX(targetX);
     }

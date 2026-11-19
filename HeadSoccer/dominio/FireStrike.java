@@ -1,9 +1,15 @@
 package dominio;
 
 /**
- * Habilidad especial que envuelve el balón en fuego y lo dispara a gran velocidad.
+ * habilidad de tiro de fuego
+ * envia el balon a gran velocidad y con efecto hacia el arco
+ * 
+ * @author gaby-mathias
+ * @version 2026
  */
 public class FireStrike extends Ability {
+    private static final long serialVersionUID = 1L;
+
     private double powerMultiplier;
 
     public FireStrike() {
@@ -13,7 +19,9 @@ public class FireStrike extends Ability {
 
     @Override
     public void activate(Character caster, Ball ball) {
-        if (caster == null || ball == null) return;
+        if (caster == null || ball == null) {
+            return;
+        }
         this.isActive = true;
         ball.setSuperShot(true);
         double dir = caster.isFacingRight() ? 1.0 : -1.0;

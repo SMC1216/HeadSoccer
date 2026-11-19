@@ -8,9 +8,10 @@ import java.io.File;
 import java.io.IOException;
 
 /**
- * Suite de pruebas unitarias exhaustiva (40+ pruebas) para la lógica de dominio de Head Soccer.
- * Evalúa inicialización, personajes, físicas del balón, rebotes, porterías, colisiones,
- * goles reglamentarios, habilidades, cooldowns, IA multidificultad y persistencia.
+ * pruebas unitarias con junit para comprobar que la logica del juego funciona bien
+ * 
+ * @author gaby-mathias
+ * @version 2026
  */
 public class HeadSoccerTest {
 
@@ -21,9 +22,6 @@ public class HeadSoccerTest {
         match = new MatchManager();
     }
 
-    // ==========================================================
-    // 1. INICIALIZACIÓN Y ESTADOS DEL PARTIDO (5 pruebas)
-    // ==========================================================
 
     @Test
     public void deberiaIniciarMarcadorEnCero() {
@@ -60,9 +58,6 @@ public class HeadSoccerTest {
         assertNotNull(match.getRightGoal());
     }
 
-    // ==========================================================
-    // 2. PERSONAJES Y MOVIMIENTO (7 pruebas)
-    // ==========================================================
 
     @Test
     public void deberiaMoverJugadorALaDerecha() {
@@ -129,9 +124,6 @@ public class HeadSoccerTest {
         assertTrue(p1.getX() + p1.getWidth() <= Ball.RIGHT_WALL);
     }
 
-    // ==========================================================
-    // 3. BALÓN Y FÍSICAS (7 pruebas)
-    // ==========================================================
 
     @Test
     public void deberiaAplicarGravedadAlBalonEnElAire() {
@@ -156,7 +148,7 @@ public class HeadSoccerTest {
     public void deberiaDetenerReboteEnSueloSiVelocidadEsMinima() {
         Ball b = match.getBall();
         b.setPosition(400, Ball.GROUND_Y - b.getHeight());
-        b.setVelocityY(0.5); // Muy pequeña velocidad vertical
+        b.setVelocityY(0.5);
         b.updatePosition();
         assertEquals(0.0, b.getVelocityY(), 0.001);
     }
@@ -196,9 +188,6 @@ public class HeadSoccerTest {
         assertTrue(b.getVelocityY() >= -22.0);
     }
 
-    // ==========================================================
-    // 4. INTERACCIÓN Y PATADA (5 pruebas)
-    // ==========================================================
 
     @Test
     public void deberiaPatearBalonHaciaLaDerecha() {
@@ -224,7 +213,7 @@ public class HeadSoccerTest {
     public void deberiaIgnorarPatadaSiBalonEstaFueraDeRango() {
         Player p1 = match.getPlayer1();
         Ball b = match.getBall();
-        b.setPosition(p1.getX() + 300, p1.getY()); // Muy lejos
+        b.setPosition(p1.getX() + 300, p1.getY());
         b.setVelocityX(0);
         p1.kick(b);
         assertEquals(0.0, b.getVelocityX(), 0.001);
@@ -247,9 +236,6 @@ public class HeadSoccerTest {
         assertTrue(p1.getSpecialMeter() > 20);
     }
 
-    // ==========================================================
-    // 5. PORTERÍAS, TRAVESAÑOS Y GOLES (5 pruebas)
-    // ==========================================================
 
     @Test
     public void deberiaAnotarGolEnArcoDerecho() {
@@ -294,13 +280,10 @@ public class HeadSoccerTest {
     public void deberiaIgnorarGolSiBalonPasaPorEncimaDelTravesano() {
         Ball b = match.getBall();
         Goal rightGoal = match.getRightGoal();
-        b.setPosition(rightGoal.getX() + 10, rightGoal.getY() - 30); // Por encima del travesaño
+        b.setPosition(rightGoal.getX() + 10, rightGoal.getY() - 30);
         assertFalse(rightGoal.checkGoal(b));
     }
 
-    // ==========================================================
-    // 6. HABILIDADES ESPECIALES Y COOLDOWNS (6 pruebas)
-    // ==========================================================
 
     @Test
     public void deberiaAcumularPoderHastaMaximoCien() {
@@ -359,12 +342,10 @@ public class HeadSoccerTest {
         p1.setSpecialMeter(100);
         p1.useSpecial(b);
 
-        // Intento de reuso con medidor recargado pero cooldown activo
         p1.setSpecialMeter(100);
         boolean reuso = p1.useSpecial(b);
         assertFalse(reuso);
 
-        // Cumplir cooldown
         Ability ab = p1.getSpecialAbility();
         for (int i = 0; i < ab.getCooldown(); i++) {
             ab.updateTick();
@@ -373,9 +354,6 @@ public class HeadSoccerTest {
         assertTrue(p1.useSpecial(b));
     }
 
-    // ==========================================================
-    // 7. INTELIGENCIA ARTIFICIAL (BotAI) (3 pruebas)
-    // ==========================================================
 
     @Test
     public void deberiaConfigurarDificultadFacil() {
@@ -405,16 +383,13 @@ public class HeadSoccerTest {
         assertEquals(BotAI.DIFFICULTY_NORMAL, bot.getDifficultyLevel());
     }
 
-    // ==========================================================
-    // 8. PERSISTENCIA, EXCEPCIONES Y FIN DE JUEGO (4 pruebas)
-    // ==========================================================
 
     @Test
     public void deberiaSalvarYCargarPartidoEnArchivo() throws IOException, HeadSoccerException {
         File tempFile = File.createTempFile("partida_test_40", ".dat");
         tempFile.deleteOnExit();
 
-        match.decrementTimer(); // Tiempo 89
+        match.decrementTimer();
         match.setDifficultyLevel(BotAI.DIFFICULTY_HARD);
         match.getPlayer1().gainSpecial(25);
 
