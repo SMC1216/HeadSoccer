@@ -5,15 +5,13 @@
             "type": "java",
             "name": "Ejecutar HeadSoccer",
             "request": "launch",
-            "mainClass": "presentacion.GameWindow",
-            "projectName": "head-soccer"
+            "mainClass": "presentacion.GameWindow"
         },
         {
             "type": "java",
             "name": "Ejecutar Pruebas JUnit",
             "request": "launch",
-            "mainClass": "dominio.HeadSoccerJUnit5Test",
-            "projectName": "head-soccer"
+            "mainClass": "dominio.HeadSoccerTest"
         }
     ]
 }

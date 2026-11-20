@@ -8,17 +8,19 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
 /**
- * Clase de utilidad y persistencia responsable de serializar y deserializar
- * el estado completo de un partido (MatchManager) en un archivo.
- * Aplica el principio de Responsabilidad Única (SRP) aislando las operaciones de I/O.
+ * clase encargada de guardar y cargar partidas completas en archivos binarios
+ * 
+ * @author gaby-mathias
+ * @version 2026
  */
 public class MatchPersistence {
 
     /**
-     * Guarda el estado del partido en un archivo especificado.
-     * @param match El objeto MatchManager a guardar.
-     * @param file El archivo destino.
-     * @throws HeadSoccerException Si ocurre un fallo durante la escritura.
+     * guarda un partido en el archivo especificado
+     * 
+     * @param match el objeto matchmanager a guardar
+     * @param file el archivo destino
+     * @throws HeadSoccerException si ocurre error de escritura o parametros nulos
      */
     public static void guardar(MatchManager match, File file) throws HeadSoccerException {
         if (match == null) {
@@ -46,16 +48,16 @@ public class MatchPersistence {
                     fileOut.close();
                 }
             } catch (IOException e) {
-                // Silenciar error de cierre secundario
             }
         }
     }
 
     /**
-     * Carga el estado de un partido previamente guardado desde un archivo.
-     * @param file El archivo a leer.
-     * @return El objeto MatchManager restaurado.
-     * @throws HeadSoccerException Si el archivo no existe o ocurre un error al deserializar.
+     * lee un archivo de partida y recupera el objeto matchmanager guardado
+     * 
+     * @param file el archivo a cargar
+     * @return el objeto matchmanager reconstruido
+     * @throws HeadSoccerException si el archivo no existe o no se puede leer
      */
     public static MatchManager cargar(File file) throws HeadSoccerException {
         if (file == null || !file.exists() || !file.canRead()) {
@@ -86,7 +88,6 @@ public class MatchPersistence {
                     fileIn.close();
                 }
             } catch (IOException e) {
-                // Silenciar error de cierre secundario
             }
         }
     }

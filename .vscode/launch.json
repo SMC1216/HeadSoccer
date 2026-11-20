@@ -1,0 +1,19 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Ejecutar HeadSoccer",
+            "request": "launch",
+            "mainClass": "presentacion.GameWindow",
+            "projectName": "head-soccer"
+        },
+        {
+            "type": "java",
+            "name": "Ejecutar Pruebas JUnit",
+            "request": "launch",
+            "mainClass": "dominio.HeadSoccerJUnit5Test",
+            "projectName": "head-soccer"
+        }
+    ]
+}

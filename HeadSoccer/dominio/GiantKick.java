@@ -1,20 +1,31 @@
 package dominio;
 
 /**
- * Habilidad especial "GiantKick" (Patada Gigante).
- * Aplica un impulso masivo al balón tanto horizontal como verticalmente
- * y le otorga al personaje un pequeño impulso adicional.
- * Demuestra el principio Abierto/Cerrado (OCP) al extender Ability sin alterar el código existente.
+ * habilidad especial de patada gigante que empuja con gran fuerza el balon
+ * 
+ * @author gaby-mathias
+ * @version 2026
  */
 public class GiantKick extends Ability {
     private static final long serialVersionUID = 1L;
+
+    /** multiplicador de poder de impacto de la patada gigante */
     private double powerMultiplier;
 
+    /**
+     * constructor de la patada gigante con 12s de cooldown y 2s de duracion
+     */
     public GiantKick() {
         super(12, 2);
         this.powerMultiplier = 21.0;
     }
 
+    /**
+     * dispara el balon con fuerza masiva horizontal y vertical y hace saltar al jugador
+     * 
+     * @param caster el personaje que patea
+     * @param ball el balon a impactar
+     */
     @Override
     public void activate(Character caster, Ball ball) {
         if (caster == null || ball == null) {
@@ -28,6 +39,11 @@ public class GiantKick extends Ability {
         caster.jump();
     }
 
+    /**
+     * obtiene el multiplicador de potencia
+     * 
+     * @return valor del multiplicador
+     */
     public double getPowerMultiplier() {
         return powerMultiplier;
     }

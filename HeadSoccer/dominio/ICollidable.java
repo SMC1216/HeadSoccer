@@ -1,20 +1,24 @@
 package dominio;
 
 /**
- * Interfaz que define el comportamiento para todos los objetos del juego
- * que pueden colisionar físicamente entre sí.
+ * interfaz para cualquier elemento del juego que pueda participar en choques
+ * 
+ * @author gaby-mathias
+ * @version 2026
  */
 public interface ICollidable {
     
     /**
-     * Obtiene el área rectangular actual del objeto para calcular colisiones.
-     * @return Objeto Bounds con las coordenadas y dimensiones actuales.
+     * devuelve la caja de choque del objeto
+     * 
+     * @return caja de limites bounds
      */
     public Bounds getBounds();
 
     /**
-     * Define la reacción del objeto cuando colisiona con otro elemento físico.
-     * @param other El otro objeto con el que se produjo la colisión.
+     * define la reaccion que tiene el objeto cuando choca contra otro
+     * 
+     * @param other el otro objeto con el que choco
      */
     public void onCollision(ICollidable other);
 }

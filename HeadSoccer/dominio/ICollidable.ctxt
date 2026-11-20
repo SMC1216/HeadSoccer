@@ -1,8 +1,0 @@
-#BlueJ class context
-#Mon Nov 09 12:21:22 COT 2026
-comment0.target=ICollidable
-comment0.text=\r\n Interfaz que define el comportamiento para todos los objetos del juego\r\n que pueden colisionar f\u00EDsicamente entre s\u00ED.\r\n
-comment1.params=other
-comment1.target=void onCollision(ICollidable)
-comment1.text=\r\n Define la reacci\u00F3n del objeto cuando colisiona con otro elemento f\u00EDsico.\r\n @param other El otro objeto con el que se produjo la colisi\u00F3n.\r\n
-numComments=2

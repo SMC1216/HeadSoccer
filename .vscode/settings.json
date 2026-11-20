@@ -1,0 +1,18 @@
+{
+    "java.jdt.ls.java.home": "C:\\Program Files\\BlueJ\\jdk",
+    "java.configuration.runtimes": [
+        {
+            "name": "JavaSE-21",
+            "path": "C:\\Program Files\\BlueJ\\jdk",
+            "default": true
+        }
+    ],
+    "java.project.sourcePaths": [
+        "HeadSoccer",
+        "."
+    ],
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "java.compile.nullAnalysis.mode": "automatic",
+    "java.test.defaultConfig": "default",
+    "java.test.report.showAfterExecution": "always"
+}

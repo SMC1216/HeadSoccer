@@ -1,64 +1,95 @@
 package dominio;
 
 /**
- * Representa el balón del partido.
- * Hereda sus coordenadas de GameObject e implementa ICollidable para rebotar.
+ * representa el balon de futbol con fisicas de gravedad, rebote y friccion
+ * 
+ * @author gaby-mathias
+ * @version 2026
  */
 public class Ball extends GameObject implements ICollidable {
-    private double velocityX;
-    private double velocityY;
-    private double bounceFactor;
-    private boolean superShot; // Indica si lleva el efecto de una habilidad especial
+    private static final long serialVersionUID = 1L;
 
-    // Constantes físicas de la cancha
+    /** velocidad en el eje x */
+    private double velocityX;
+
+    /** velocidad en el eje y */
+    private double velocityY;
+
+    /** fraccion de energia conservada en cada rebote */
+    private double bounceFactor;
+
+    /** indica si el balon lleva activo un efecto de super tiro */
+    private boolean superShot;
+
+    /** constante de gravedad aplicada por frame */
     public static final double GRAVITY = 0.65;
+
+    /** friccion del aire para frenar suavemente */
     public static final double FRICTION = 0.985;
-    public static final double GROUND_Y = 420.0; // Nivel del suelo lógico
+
+    /** altura en y donde esta el suelo del campo */
+    public static final double GROUND_Y = 420.0;
+
+    /** limite izquierdo de la cancha */
     public static final double LEFT_WALL = 20.0;
+
+    /** limite derecho de la cancha */
     public static final double RIGHT_WALL = 860.0;
+
+    /** altura del techo de la cancha */
     public static final double CEILING_Y = 20.0;
+
+    /** velocidad maxima permitida para evitar que atraviese objetos */
     private static final double MAX_SPEED = 22.0;
 
     /**
-     * Constructor del balón.
-     * @param x Posición horizontal inicial.
-     * @param y Posición vertical inicial.
-     * @param size Diámetro del balón.
+     * constructor para inicializar el balon con su posicion y diametro
+     * 
+     * @param x posicion inicial en x
+     * @param y posicion inicial en y
+     * @param size diametro del balon
      */
     public Ball(double x, double y, int size) {
         super(x, y, size, size);
         this.velocityX = 0.0;
         this.velocityY = 0.0;
-        this.bounceFactor = 0.78; // Conserva el 78% de la energía al rebotar
+        this.bounceFactor = 0.78;
         this.superShot = false;
     }
 
     /**
-     * Aplica la aceleración de la gravedad a la velocidad vertical del balón.
+     * suma la fuerza de la gravedad a la velocidad vertical
      */
     public void applyGravity() {
         this.velocityY += GRAVITY;
     }
 
     /**
-     * Añade un impulso o fuerza al balón (al ser pateado, cabeceado o recibir un poder).
-     * @param forceX Fuerza horizontal (positiva hacia la derecha, negativa hacia la izquierda).
-     * @param forceY Fuerza vertical (negativa impulsa hacia arriba).
+     * le da un impulso de fuerza al balon
+     * 
+     * @param forceX fuerza horizontal
+     * @param forceY fuerza vertical
      */
     public void addForce(double forceX, double forceY) {
         this.velocityX += forceX;
         this.velocityY += forceY;
 
-        // Limitar la velocidad máxima para evitar que atraviese paredes
-        if (this.velocityX > MAX_SPEED) this.velocityX = MAX_SPEED;
-        if (this.velocityX < -MAX_SPEED) this.velocityX = -MAX_SPEED;
-        if (this.velocityY > MAX_SPEED) this.velocityY = MAX_SPEED;
-        if (this.velocityY < -MAX_SPEED) this.velocityY = -MAX_SPEED;
+        if (this.velocityX > MAX_SPEED) {
+            this.velocityX = MAX_SPEED;
+        }
+        if (this.velocityX < -MAX_SPEED) {
+            this.velocityX = -MAX_SPEED;
+        }
+        if (this.velocityY > MAX_SPEED) {
+            this.velocityY = MAX_SPEED;
+        }
+        if (this.velocityY < -MAX_SPEED) {
+            this.velocityY = -MAX_SPEED;
+        }
     }
 
     /**
-     * Actualiza la posición del balón en cada fotograma, aplicando gravedad,
-     * fricción del aire y rebotes contra el suelo, techo y límites laterales.
+     * calcula la nueva posicion del balon en cada frame con rebotes en paredes y suelo
      */
     @Override
     public void updatePosition() {
@@ -67,31 +98,26 @@ public class Ball extends GameObject implements ICollidable {
         setX(getX() + velocityX);
         setY(getY() + velocityY);
 
-        // Fricción horizontal suave
         velocityX *= FRICTION;
         if (Math.abs(velocityX) < 0.08) {
             velocityX = 0.0;
-            superShot = false; // Se apaga el efecto especial cuando pierde velocidad
+            superShot = false;
         }
 
-        // Rebote contra el suelo
         if (getY() + getHeight() >= GROUND_Y) {
             setY(GROUND_Y - getHeight());
             velocityY = -velocityY * bounceFactor;
 
-            // Si el rebote ya es muy pequeño, deja de saltar en el césped
             if (Math.abs(velocityY) < 1.2) {
                 velocityY = 0.0;
             }
         }
 
-        // Rebote contra el techo del estadio
         if (getY() < CEILING_Y) {
             setY(CEILING_Y);
             velocityY = -velocityY * bounceFactor;
         }
 
-        // Rebote contra los muros laterales del estadio
         if (getX() < LEFT_WALL) {
             setX(LEFT_WALL);
             velocityX = -velocityX * bounceFactor;
@@ -102,7 +128,10 @@ public class Ball extends GameObject implements ICollidable {
     }
 
     /**
-     * Detiene por completo el balón y lo ubica en las coordenadas indicadas (tras un gol).
+     * detiene y recoloca el balon en el punto de saque
+     * 
+     * @param startX nueva coordenada x
+     * @param startY nueva coordenada y
      */
     public void resetBall(double startX, double startY) {
         setPosition(startX, startY);
@@ -111,27 +140,33 @@ public class Ball extends GameObject implements ICollidable {
         this.superShot = false;
     }
 
+    /**
+     * devuelve la caja de choque del balon
+     * 
+     * @return limites bounds del balon
+     */
     @Override
     public Bounds getBounds() {
         return new Bounds(getX(), getY(), getWidth(), getHeight());
     }
 
     /**
-     * Gestiona el rebote físico cuando el balón choca con otro objeto colisionable
-     * (por ejemplo, el cuerpo o la cabeza de un personaje o el travesaño).
+     * procesa el choque del balon con un jugador o travesano
+     * 
+     * @param other el objeto contra el cual choco
      */
     @Override
     public void onCollision(ICollidable other) {
-        if (other == null) return;
+        if (other == null) {
+            return;
+        }
         Bounds myBounds = this.getBounds();
         Bounds otherBounds = other.getBounds();
 
         if (myBounds.intersects(otherBounds)) {
-            // Calculamos la dirección del rebote según los centros de ambos objetos
             double dx = myBounds.getCenterX() - otherBounds.getCenterX();
             double dy = myBounds.getCenterY() - otherBounds.getCenterY();
 
-            // Empuje horizontal y rebote ligeramente hacia arriba (efecto cabezazo)
             double pushX = (dx >= 0) ? 7.5 : -7.5;
             double pushY = (dy < 0) ? -8.5 : -4.0;
 
@@ -140,16 +175,75 @@ public class Ball extends GameObject implements ICollidable {
         }
     }
 
-    // Getters y Setters
-    public double getVelocityX() { return velocityX; }
-    public void setVelocityX(double velocityX) { this.velocityX = velocityX; }
+    /**
+     * obtiene la velocidad en x
+     * 
+     * @return velocidad horizontal
+     */
+    public double getVelocityX() { 
+        return velocityX; 
+    }
+    
+    /**
+     * cambia la velocidad en x
+     * 
+     * @param velocityX nuevo valor
+     */
+    public void setVelocityX(double velocityX) { 
+        this.velocityX = velocityX; 
+    }
 
-    public double getVelocityY() { return velocityY; }
-    public void setVelocityY(double velocityY) { this.velocityY = velocityY; }
+    /**
+     * obtiene la velocidad en y
+     * 
+     * @return velocidad vertical
+     */
+    public double getVelocityY() { 
+        return velocityY; 
+    }
+    
+    /**
+     * cambia la velocidad en y
+     * 
+     * @param velocityY nuevo valor
+     */
+    public void setVelocityY(double velocityY) { 
+        this.velocityY = velocityY; 
+    }
 
-    public double getBounceFactor() { return bounceFactor; }
-    public void setBounceFactor(double bounceFactor) { this.bounceFactor = bounceFactor; }
+    /**
+     * obtiene el factor de rebote
+     * 
+     * @return porcentaje de restitucion
+     */
+    public double getBounceFactor() { 
+        return bounceFactor; 
+    }
+    
+    /**
+     * modifica el factor de rebote
+     * 
+     * @param bounceFactor nuevo factor
+     */
+    public void setBounceFactor(double bounceFactor) { 
+        this.bounceFactor = bounceFactor; 
+    }
 
-    public boolean isSuperShot() { return superShot; }
-    public void setSuperShot(boolean superShot) { this.superShot = superShot; }
+    /**
+     * indica si esta en estado de super tiro
+     * 
+     * @return true si lleva efecto especial
+     */
+    public boolean isSuperShot() { 
+        return superShot; 
+    }
+    
+    /**
+     * activa o desactiva el estado de super tiro
+     * 
+     * @param superShot nuevo estado
+     */
+    public void setSuperShot(boolean superShot) { 
+        this.superShot = superShot; 
+    }
 }
