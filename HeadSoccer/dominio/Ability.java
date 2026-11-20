@@ -71,6 +71,15 @@ public abstract class Ability implements Serializable {
         return cooldownRemaining <= 0;
     }
 
+    /**
+     * Reinicia el estado de enfriamiento y duración de la habilidad.
+     */
+    public void reset() {
+        this.cooldownRemaining = 0;
+        this.durationRemaining = 0;
+        this.isActive = false;
+    }
+
     // Getters y Setters
     public boolean isActive() { return isActive; }
     public void setActive(boolean active) { this.isActive = active; }

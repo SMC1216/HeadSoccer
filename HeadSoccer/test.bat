@@ -21,7 +21,7 @@ javac -encoding UTF-8 -d . -cp ".;C:\Program Files\BlueJ\lib\junit-4.12.jar;C:\P
 
 if %ERRORLEVEL% equ 0 (
     echo.
-    echo Corriendo bateria de 42 pruebas automatizadas con JUnit...
+    echo Corriendo bateria de 52 pruebas automatizadas con JUnit...
     echo.
     java -cp ".;C:\Program Files\BlueJ\lib\junit-4.12.jar;C:\Program Files\BlueJ\lib\hamcrest-core-1.3.jar" org.junit.runner.JUnitCore dominio.HeadSoccerTest
 ) else (

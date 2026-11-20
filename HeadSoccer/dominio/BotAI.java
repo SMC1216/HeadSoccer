@@ -38,6 +38,7 @@ public class BotAI extends Character {
 
     /**
      * Evalúa y ejecuta las decisiones tácticas del bot según su nivel de dificultad.
+     * Permite desplazamiento y orientación natural en ambas direcciones (izquierda y derecha).
      * @param ball El balón en juego.
      */
     public void calculateMove(Ball ball) {
@@ -57,14 +58,26 @@ public class BotAI extends Character {
                 calculateMoveNormal(ball);
                 break;
         }
-
-        // El bot siempre mira prioritariamente hacia la izquierda (portería rival)
-        this.setFacingRight(false);
     }
 
     /**
-     * Nivel Fácil: Decisiones lentas con retardo de reacción, menor rango de impacto
-     * y sin anticipación ni uso de poderes.
+     * Ejecuta una patada orientada hacia la portería rival (izquierda) únicamente
+     * si el bot está posicionado a la derecha del balón, evitando autogoles.
+     * @param ball El balón a patear.
+     */
+    private void kickTowardsOpponentGoal(Ball ball) {
+        double ballCenter = ball.getBounds().getCenterX();
+        double myCenter = this.getBounds().getCenterX();
+
+        if (myCenter >= ballCenter - 12) {
+            this.setFacingRight(false);
+            kick(ball);
+        }
+    }
+
+    /**
+     * Nivel Fácil: Decisiones con retardo de reacción, movimiento en ambas direcciones,
+     * menor rango de impacto y sin uso de poderes.
      */
     private void calculateMoveEasy(Ball ball) {
         reactionDelayCounter++;
@@ -77,83 +90,102 @@ public class BotAI extends Character {
         double ballCenter = ball.getBounds().getCenterX();
         double myCenter = this.getBounds().getCenterX();
 
-        if (ballCenter > 520) {
-            if (ballCenter < myCenter - 30) {
-                currentDirection = -1;
-            } else if (ballCenter > myCenter + 30) {
-                currentDirection = 1;
+        if (ballCenter > 360) {
+            double targetX = ballCenter + 30.0;
+            if (targetX > 745) targetX = 745;
+
+            if (myCenter > targetX + 25) {
+                currentDirection = -1; // Avanza hacia la izquierda
+            } else if (myCenter < targetX - 25) {
+                currentDirection = 1;  // Retrocede o rodea hacia la derecha
             } else {
                 currentDirection = 0;
             }
         } else {
-            // Regresa lentamente a su arco
-            if (myCenter < 690) currentDirection = 1;
+            // Repliegue hacia su portería moviéndose a la derecha o ajustando a la izquierda
+            if (myCenter < 680) currentDirection = 1;
             else if (myCenter > 720) currentDirection = -1;
             else currentDirection = 0;
         }
         move(currentDirection);
+        if (currentDirection == 0) {
+            this.setFacingRight(false);
+        }
 
         // Salto con menor precisión
         if (Math.abs(ballCenter - myCenter) < 65 && ball.getY() < getY()) {
             jump();
         }
 
-        // Patea con rango reducido
+        // Patea hacia el arco rival si está detrás del balón
         if (Math.abs(ballCenter - myCenter) < 65) {
-            kick(ball);
+            kickTowardsOpponentGoal(ball);
         }
     }
 
     /**
-     * Nivel Normal: Equilibrio de ataque y defensa con buena cobertura de portería.
+     * Nivel Normal: Equilibrio de ataque y defensa en toda la cancha,
+     * moviéndose hacia izquierda y derecha con reposicionamiento detrás del balón.
      */
     private void calculateMoveNormal(Ball ball) {
+        double ballCenter = ball.getBounds().getCenterX();
+        double myCenter = this.getBounds().getCenterX();
+
         reactionDelayCounter++;
         if (reactionDelayCounter < 2) {
             move(currentDirection);
         } else {
             reactionDelayCounter = 0;
-            double ballCenter = ball.getBounds().getCenterX();
-            double myCenter = this.getBounds().getCenterX();
 
-            if (ballCenter > 420) {
-                if (ballCenter < myCenter - 20) currentDirection = -1;
-                else if (ballCenter > myCenter + 20) currentDirection = 1;
-                else currentDirection = 0;
+            if (ballCenter > 240) {
+                double targetX = ballCenter + 32.0;
+                if (targetX > 745) targetX = 745;
+
+                if (myCenter > targetX + 18) {
+                    currentDirection = -1;
+                } else if (myCenter < targetX - 18) {
+                    currentDirection = 1;
+                } else {
+                    currentDirection = 0;
+                }
             } else {
+                // Regresa a cubrir su portería
                 if (myCenter < 670) currentDirection = 1;
                 else if (myCenter > 710) currentDirection = -1;
                 else currentDirection = 0;
             }
             move(currentDirection);
+            if (currentDirection == 0) {
+                this.setFacingRight(false);
+            }
         }
 
-        double ballCenter = ball.getBounds().getCenterX();
-        double myCenter = this.getBounds().getCenterX();
-
-        // Salta si el balón viene elevado
-        if (Math.abs(ballCenter - myCenter) < 90 && ball.getY() < getY() + 10) {
+        // Si el balón quedó detrás del bot (a su derecha), salta para superarlo sin empujarlo a su arco
+        if (ballCenter > myCenter && (ballCenter - myCenter) < 75 && ball.getY() > getY() - 10) {
+            jump();
+        } else if (Math.abs(ballCenter - myCenter) < 90 && ball.getY() < getY() + 10) {
             jump();
         }
 
-        // Patea en rango estándar
+        // Patea en rango estándar hacia el arco izquierdo
         if (Math.abs(ballCenter - myCenter) < 85) {
-            kick(ball);
+            kickTowardsOpponentGoal(ball);
         }
 
         // Uso defensivo del poder especial
         if (getSpecialMeter() >= 100 && getSpecialAbility() != null && getSpecialAbility().isReady()) {
             boolean peligroso = ball.getVelocityX() > 3.5 && ballCenter > 560;
             if (peligroso) {
+                this.setFacingRight(false);
                 useSpecial(ball);
-                kick(ball);
+                kickTowardsOpponentGoal(ball);
             }
         }
     }
 
     /**
-     * Nivel Difícil: Reacción instantánea, predicción de trayectoria balística del balón,
-     * saltos de anticipación y uso quirúrgico de habilidades.
+     * Nivel Difícil: Reacción instantánea en ambas direcciones, predicción de trayectoria
+     * balística del balón, presión ofensiva y repliegue defensivo inteligente.
      */
     private void calculateMoveHard(Ball ball) {
         double ballCenter = ball.getBounds().getCenterX();
@@ -162,41 +194,49 @@ public class BotAI extends Character {
         // Predicción balística: proyectar dónde estará el balón en los próximos fotogramas
         double projectedBallX = ballCenter + (ball.getVelocityX() * 8.0);
 
-        // Posicionarse detrás del balón proyectado para impulsarlo hacia la izquierda
-        double targetX = projectedBallX + 35.0; // Se coloca a la derecha del balón para patear a la izquierda
+        // Posicionarse a la derecha del balón proyectado para rematar hacia la izquierda
+        double targetX = projectedBallX + 35.0;
 
-        if (targetX < 440) {
-            targetX = 440; // No pasar demasiado al área rival para no regalar su arco
+        // Si el balón está muy profundo en el arco rival y subiendo, mantener cobertura media
+        if (targetX < 150) {
+            targetX = 150;
         }
-        if (targetX > 740) {
-            targetX = 740;
+        if (targetX > 745) {
+            targetX = 745;
         }
 
         if (myCenter < targetX - 10) {
+            currentDirection = 1;
             move(1);
         } else if (myCenter > targetX + 10) {
+            currentDirection = -1;
             move(-1);
         } else {
+            currentDirection = 0;
             move(0);
+            this.setFacingRight(false);
         }
 
-        // Salto de intercepción o remate aéreo anticipado
-        if (Math.abs(projectedBallX - myCenter) < 110 && ball.getY() < getY() + 25) {
+        // Si el balón pasa a la derecha del bot, saltar para rodearlo por el aire sin autogol
+        if (ballCenter > myCenter && (ballCenter - myCenter) < 80) {
+            jump();
+        } else if (Math.abs(projectedBallX - myCenter) < 110 && ball.getY() < getY() + 25) {
             jump();
         }
 
-        // Patea con máximo timing
+        // Patea con máximo timing cuando está detrás del balón
         if (Math.abs(ballCenter - myCenter) < 95) {
-            kick(ball);
+            kickTowardsOpponentGoal(ball);
         }
 
         // Uso inteligente de la habilidad Teleport (ataque o emergencia)
         if (getSpecialMeter() >= 100 && getSpecialAbility() != null && getSpecialAbility().isReady()) {
             boolean peligro = ball.getVelocityX() > 2.0 && ballCenter > 500;
-            boolean contragolpe = ballCenter > 380 && ballCenter < 600 && ball.getY() < Ball.GROUND_Y - 40;
+            boolean contragolpe = ballCenter > 320 && ballCenter < 620 && ball.getY() < Ball.GROUND_Y - 40;
             if (peligro || contragolpe) {
+                this.setFacingRight(false);
                 useSpecial(ball);
-                kick(ball);
+                kickTowardsOpponentGoal(ball);
             }
         }
     }
@@ -208,5 +248,17 @@ public class BotAI extends Character {
 
     public void setDifficultyLevel(int difficultyLevel) {
         this.difficultyLevel = validateDifficulty(difficultyLevel);
+    }
+
+    /**
+     * Configura la dificultad validando estrictamente el rango permitido.
+     * @param difficultyLevel Nivel de dificultad (1=Fácil, 2=Normal, 3=Difícil).
+     * @throws HeadSoccerException Si el nivel está fuera del rango válido.
+     */
+    public void setDifficultyLevelStrict(int difficultyLevel) throws HeadSoccerException {
+        if (difficultyLevel < DIFFICULTY_EASY || difficultyLevel > DIFFICULTY_HARD) {
+            throw new HeadSoccerException(HeadSoccerException.DIFICULTAD_INVALIDA);
+        }
+        this.difficultyLevel = difficultyLevel;
     }
 }

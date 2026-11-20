@@ -260,13 +260,31 @@ public class HeadSoccerJUnit5Test {
     @Test
     @DisplayName("Validación y cambio dinámico de dificultad")
     public void testCambioDificultadBot() {
-        BotAI bot = match.getPlayer2();
+        BotAI bot = match.getBotPlayer2();
         bot.setDifficultyLevel(BotAI.DIFFICULTY_HARD);
         assertEquals(BotAI.DIFFICULTY_HARD, bot.getDifficultyLevel());
 
         // Entrada inválida debe reajustarse a Normal
         bot.setDifficultyLevel(99);
         assertEquals(BotAI.DIFFICULTY_NORMAL, bot.getDifficultyLevel());
+    }
+
+    @Test
+    @DisplayName("Movimiento bidireccional del BotAI (izquierda y derecha)")
+    public void testMovimientoBidireccionalBot() {
+        BotAI bot = new BotAI(500, Ball.GROUND_Y - 92, BotAI.DIFFICULTY_HARD);
+
+        // Balón a la izquierda: el bot avanza a la izquierda
+        Ball bIzq = new Ball(280, Ball.GROUND_Y - 50, 36);
+        bot.calculateMove(bIzq);
+        assertTrue(bot.getVelocityX() < 0, "El bot debe moverse hacia la izquierda");
+        assertFalse(bot.isFacingRight(), "El bot debe mirar a la izquierda al avanzar");
+
+        // Balón a la derecha (detrás del bot): el bot retrocede/rodea hacia la derecha
+        Ball bDer = new Ball(680, Ball.GROUND_Y - 50, 36);
+        bot.calculateMove(bDer);
+        assertTrue(bot.getVelocityX() > 0, "El bot debe moverse hacia la derecha");
+        assertTrue(bot.isFacingRight(), "El bot debe mirar a la derecha al retroceder");
     }
 
     // ==========================================
@@ -314,7 +332,7 @@ public class HeadSoccerJUnit5Test {
     @Test
     @DisplayName("Habilidad Teleport del BotAI")
     public void testTeleportActivacion() {
-        BotAI bot = match.getPlayer2();
+        BotAI bot = match.getBotPlayer2();
         Ball b = match.getBall();
         b.setPosition(350, 200);
 
@@ -369,6 +387,74 @@ public class HeadSoccerJUnit5Test {
         File archivoInexistente = new File("archivo_inexistente_xyz_999.dat");
         assertThrows(HeadSoccerException.class, () -> {
             MatchManager.abrir(archivoInexistente);
+        });
+    }
+
+    // ==========================================
+    // SECCIÓN 8: MODO 2 JUGADORES, MENÚ, COLISIONES Y EXCEPCIONES
+    // ==========================================
+
+    @Test
+    @DisplayName("Configuración y control del Modo 2 Jugadores (PVP)")
+    public void testModoDosJugadores() throws HeadSoccerException {
+        match.configureMatch(MatchManager.MODE_PVP, BotAI.DIFFICULTY_NORMAL);
+        assertTrue(match.isTwoPlayerMode(), "Debe estar en modo 2 jugadores");
+        assertNotNull(match.getHumanPlayer2(), "Jugador 2 humano no debe ser nulo");
+        assertNull(match.getBotPlayer2(), "No debe haber instancia de BotAI en modo PVP");
+
+        Player p2 = match.getHumanPlayer2();
+        double xInicial = p2.getX();
+        match.handlePlayer2Input("LEFT");
+        p2.updatePosition();
+        assertTrue(p2.getX() < xInicial, "Jugador 2 debe desplazarse a la izquierda");
+    }
+
+    @Test
+    @DisplayName("Retorno al menú principal sin cerrar la partida")
+    public void testRetornoAlMenuPrincipal() {
+        match.returnToMenu();
+        assertEquals(MatchManager.STATE_MENU, match.getMatchState());
+
+        int tiempoAntes = match.getTimeRemaining();
+        match.decrementTimer();
+        assertEquals(tiempoAntes, match.getTimeRemaining(), "El reloj no debe correr en el menú principal");
+    }
+
+    @Test
+    @DisplayName("Colisión física cuerpo a cuerpo entre Jugador 1 y Jugador 2")
+    public void testColisionEntreJugadores() {
+        Player p1 = match.getPlayer1();
+        Character p2 = match.getPlayer2();
+
+        p1.setPosition(410, Ball.GROUND_Y - 92);
+        p2.setPosition(440, Ball.GROUND_Y - 92);
+        assertTrue(p1.getBounds().intersects(p2.getBounds()), "Deben estar superpuestos inicialmente");
+
+        match.checkCollisions();
+        assertFalse(p1.getBounds().intersects(p2.getBounds()), "La colisión debe separar físicamente a ambos jugadores");
+    }
+
+    @Test
+    @DisplayName("Excepciones de dominio para modos, dificultad, acciones y jugador no humano")
+    public void testExcepcionesDominioNuevasFuncionalidades() {
+        assertThrows(HeadSoccerException.class, () -> {
+            match.configureMatch("MODO_INVALIDO", BotAI.DIFFICULTY_NORMAL);
+        });
+
+        assertThrows(HeadSoccerException.class, () -> {
+            match.configureMatch(MatchManager.MODE_PVE, -5);
+        });
+
+        assertThrows(HeadSoccerException.class, () -> {
+            match.handlePlayer2Input("LEFT"); // Falla porque está en modo PVE contra el Bot
+        });
+
+        assertThrows(HeadSoccerException.class, () -> {
+            match.handlePlayer1Input("ACCION_INEXISTENTE");
+        });
+
+        assertThrows(HeadSoccerException.class, () -> {
+            match.getPlayer1().setPlayerName("");
         });
     }
 }

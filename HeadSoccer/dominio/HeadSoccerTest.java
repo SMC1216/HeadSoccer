@@ -332,7 +332,7 @@ public class HeadSoccerTest {
 
     @Test
     public void deberiaTeletransportarPersonajeCercaDelBalonConTeleport() {
-        BotAI bot = match.getPlayer2();
+        BotAI bot = match.getBotPlayer2();
         Ball b = match.getBall();
         b.setPosition(350, 200);
         bot.setSpecialMeter(100);
@@ -400,9 +400,26 @@ public class HeadSoccerTest {
 
     @Test
     public void deberiaRestablecerADificultadNormalSiValorEsInvalido() {
-        BotAI bot = match.getPlayer2();
+        BotAI bot = match.getBotPlayer2();
         bot.setDifficultyLevel(99);
         assertEquals(BotAI.DIFFICULTY_NORMAL, bot.getDifficultyLevel());
+    }
+
+    @Test
+    public void deberiaMoverBotEnAmbasDireccionesSegunPosicionDelBalon() {
+        BotAI bot = new BotAI(500, Ball.GROUND_Y - 92, BotAI.DIFFICULTY_HARD);
+
+        // Balón a la izquierda: el bot debe moverse a la izquierda y mirar a la izquierda
+        Ball balonIzquierda = new Ball(300, Ball.GROUND_Y - 50, 36);
+        bot.calculateMove(balonIzquierda);
+        assertTrue(bot.getVelocityX() < 0);
+        assertFalse(bot.isFacingRight());
+
+        // Balón a la derecha (detrás del bot): el bot debe moverse a la derecha y mirar a la derecha
+        Ball balonDerecha = new Ball(680, Ball.GROUND_Y - 50, 36);
+        bot.calculateMove(balonDerecha);
+        assertTrue(bot.getVelocityX() > 0);
+        assertTrue(bot.isFacingRight());
     }
 
     // ==========================================================
@@ -449,5 +466,92 @@ public class HeadSoccerTest {
         assertEquals(0, match.getTimeRemaining());
         assertEquals(MatchManager.STATE_FINISHED, match.getMatchState());
         assertTrue(match.getWinnerMessage().contains("EMPATE"));
+    }
+
+    // ==========================================================
+    // 9. MODO DOS JUGADORES, MENÚ, COLISIÓN ENTRE JUGADORES Y EXCEPCIONES
+    // ==========================================================
+
+    @Test
+    public void deberiaConfigurarModoDosJugadoresCorrectamente() throws HeadSoccerException {
+        match.configureMatch(MatchManager.MODE_PVP, BotAI.DIFFICULTY_NORMAL);
+        assertTrue(match.isTwoPlayerMode());
+        assertEquals(MatchManager.MODE_PVP, match.getGameMode());
+        assertNotNull(match.getHumanPlayer2());
+        assertNull(match.getBotPlayer2());
+        assertEquals("Jugador 2", match.getHumanPlayer2().getPlayerName());
+    }
+
+    @Test
+    public void deberiaControlarJugador2EnModoDosJugadores() throws HeadSoccerException {
+        match.configureMatch(MatchManager.MODE_PVP, BotAI.DIFFICULTY_NORMAL);
+        Player p2 = match.getHumanPlayer2();
+        double xInicial = p2.getX();
+
+        match.handlePlayer2Input("LEFT");
+        p2.updatePosition();
+        assertTrue(p2.getX() < xInicial);
+        assertFalse(p2.isFacingRight());
+
+        match.handlePlayer2Input("RIGHT");
+        p2.updatePosition();
+        assertTrue(p2.isFacingRight());
+
+        double ySuelo = p2.getY();
+        match.handlePlayer2Input("JUMP");
+        p2.updatePosition();
+        assertTrue(p2.getY() < ySuelo);
+    }
+
+    @Test
+    public void deberiaVolverAlMenuPrincipalSinCerrarJuego() {
+        match.returnToMenu();
+        assertEquals(MatchManager.STATE_MENU, match.getMatchState());
+
+        // En estado MENU el reloj no debe avanzar
+        int tiempo = match.getTimeRemaining();
+        match.decrementTimer();
+        assertEquals(tiempo, match.getTimeRemaining());
+    }
+
+    @Test
+    public void deberiaSepararJugadoresAlColisionarEntreEllos() {
+        Player p1 = match.getPlayer1();
+        Character p2 = match.getPlayer2();
+
+        // Superponer ambos jugadores en el centro de la cancha
+        p1.setPosition(400, Ball.GROUND_Y - 92);
+        p2.setPosition(430, Ball.GROUND_Y - 92);
+        assertTrue(p1.getBounds().intersects(p2.getBounds()));
+
+        match.checkCollisions();
+        assertFalse(p1.getBounds().intersects(p2.getBounds()));
+        assertTrue(p1.getX() < p2.getX());
+    }
+
+    @Test(expected = HeadSoccerException.class)
+    public void deberiaLanzarExcepcionConModoDeJuegoInvalido() throws HeadSoccerException {
+        match.configureMatch("MODO_INEXISTENTE", BotAI.DIFFICULTY_NORMAL);
+    }
+
+    @Test(expected = HeadSoccerException.class)
+    public void deberiaLanzarExcepcionConDificultadInvalidaEnConfiguracion() throws HeadSoccerException {
+        match.configureMatch(MatchManager.MODE_PVE, 99);
+    }
+
+    @Test(expected = HeadSoccerException.class)
+    public void deberiaLanzarExcepcionAlControlarJugador2EnModoContraBot() throws HeadSoccerException {
+        // Por defecto inicia en MODE_PVE contra el Bot
+        match.handlePlayer2Input("LEFT");
+    }
+
+    @Test(expected = HeadSoccerException.class)
+    public void deberiaLanzarExcepcionConAccionDeJugadorInvalida() throws HeadSoccerException {
+        match.handlePlayer1Input("VOLAR");
+    }
+
+    @Test(expected = HeadSoccerException.class)
+    public void deberiaLanzarExcepcionConNombreDeJugadorVacio() throws HeadSoccerException {
+        match.getPlayer1().setPlayerName("   ");
     }
 }

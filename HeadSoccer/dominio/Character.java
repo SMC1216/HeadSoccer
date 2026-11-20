@@ -4,6 +4,8 @@ package dominio;
  * Clase abstracta que representa a un personaje (muñeco) dentro de la cancha.
  */
 public abstract class Character extends GameObject implements ICollidable {
+    private static final long serialVersionUID = 1L;
+
     private double speed;
     private double jumpForce;
     private double velocityX;
@@ -99,10 +101,108 @@ public abstract class Character extends GameObject implements ICollidable {
         return new Bounds(getX(), getY(), getWidth(), getHeight());
     }
 
+    /**
+     * Reinicia el estado cinemático y la posición del personaje.
+     * @param startX Coordenada X inicial.
+     * @param startY Coordenada Y inicial.
+     * @param faceRight Orientación inicial (true = derecha, false = izquierda).
+     */
+    public void resetState(double startX, double startY, boolean faceRight) {
+        setPosition(startX, startY);
+        this.velocityX = 0.0;
+        this.velocityY = 0.0;
+        this.isGrounded = true;
+        this.facingRight = faceRight;
+    }
+
     @Override
     public void onCollision(ICollidable other) {
+        if (other == null || other == this) {
+            return;
+        }
         if (other instanceof Ball) {
             gainSpecial(5);
+        } else if (other instanceof Character) {
+            resolveCharacterCollision((Character) other);
+        }
+    }
+
+    /**
+     * Resuelve la colisión física cuerpo a cuerpo entre dos personajes,
+     * evitando que se atraviesen y respetando los límites de la cancha.
+     * @param other El otro personaje con el que colisiona.
+     */
+    private void resolveCharacterCollision(Character other) {
+        Bounds myBounds = this.getBounds();
+        Bounds otherBounds = other.getBounds();
+
+        if (!myBounds.intersects(otherBounds)) {
+            return;
+        }
+
+        double myCenterX = myBounds.getCenterX();
+        double otherCenterX = otherBounds.getCenterX();
+        double myCenterY = myBounds.getCenterY();
+        double otherCenterY = otherBounds.getCenterY();
+
+        // Si un personaje cae encima de la cabeza del otro, rebota ligeramente y se desliza
+        if (Math.abs(myCenterY - otherCenterY) > 35 && Math.abs(myCenterX - otherCenterX) < 55) {
+            if (myCenterY < otherCenterY) {
+                this.velocityY = -jumpForce * 0.55;
+                this.isGrounded = false;
+            } else {
+                other.velocityY = -other.jumpForce * 0.55;
+                other.isGrounded = false;
+            }
+        }
+
+        double minDistanceX = (this.getWidth() + other.getWidth()) / 2.0;
+        double currentDistX = Math.abs(myCenterX - otherCenterX);
+        double overlapX = minDistanceX - currentDistX;
+
+        if (overlapX > 0) {
+            boolean iAmLeft = (myCenterX < otherCenterX) || (myCenterX == otherCenterX && this.getX() <= other.getX());
+            double push = (overlapX / 2.0) + 1.0;
+
+            double minX = Ball.LEFT_WALL + 55;
+            double maxThisX = Ball.RIGHT_WALL - 55 - this.getWidth();
+            double maxOtherX = Ball.RIGHT_WALL - 55 - other.getWidth();
+
+            if (iAmLeft) {
+                double newThisX = Math.max(minX, this.getX() - push);
+                double newOtherX = Math.min(maxOtherX, other.getX() + push);
+
+                // Si uno quedó contra la pared izquierda, desplazar al otro el resto
+                if (newThisX + this.getWidth() > newOtherX) {
+                    newOtherX = Math.min(maxOtherX, newThisX + this.getWidth() + 1.0);
+                }
+                // Si el otro quedó contra la pared derecha, desplazar a este hacia la izquierda
+                if (newThisX + this.getWidth() > newOtherX) {
+                    newThisX = Math.max(minX, newOtherX - this.getWidth() - 1.0);
+                }
+
+                this.setX(newThisX);
+                other.setX(newOtherX);
+
+                if (this.velocityX > 0) this.velocityX = 0;
+                if (other.velocityX < 0) other.velocityX = 0;
+            } else {
+                double newOtherX = Math.max(minX, other.getX() - push);
+                double newThisX = Math.min(maxThisX, this.getX() + push);
+
+                if (newOtherX + other.getWidth() > newThisX) {
+                    newThisX = Math.min(maxThisX, newOtherX + other.getWidth() + 1.0);
+                }
+                if (newOtherX + other.getWidth() > newThisX) {
+                    newOtherX = Math.max(minX, newThisX - other.getWidth() - 1.0);
+                }
+
+                other.setX(newOtherX);
+                this.setX(newThisX);
+
+                if (this.velocityX < 0) this.velocityX = 0;
+                if (other.velocityX > 0) other.velocityX = 0;
+            }
         }
     }
 
@@ -111,4 +211,8 @@ public abstract class Character extends GameObject implements ICollidable {
     public int getSpecialMeter() { return specialMeter; }
     public void setSpecialMeter(int specialMeter) { this.specialMeter = specialMeter; }
     public Ability getSpecialAbility() { return specialAbility; }
+    public void setSpecialAbility(Ability specialAbility) { this.specialAbility = specialAbility; }
+    public double getVelocityX() { return velocityX; }
+    public double getVelocityY() { return velocityY; }
+    public boolean isGrounded() { return isGrounded; }
 }
