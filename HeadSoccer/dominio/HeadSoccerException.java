@@ -25,6 +25,10 @@ public class HeadSoccerException extends Exception {
     public static final String ACCION_INVALIDA = "La acción solicitada para el jugador no es válida.";
     public static final String DIFICULTAD_INVALIDA = "El nivel de dificultad especificado no es válido.";
     public static final String PERSONAJE_INVALIDO = "Los datos del personaje son inválidos o nulos.";
+    public static final String EQUIPO_INVALIDO = "El equipo seleccionado no es válido o no existe.";
+    public static final String ESTADIO_INVALIDO = "El estadio seleccionado no es válido o no existe.";
+    public static final String PODER_INVALIDO = "El poder especial seleccionado no es válido o no existe.";
+    public static final String COLOR_INVALIDO = "El color de camiseta especificado no puede ser nulo.";
 
     /**
      * constructor simple con mensaje descriptivo

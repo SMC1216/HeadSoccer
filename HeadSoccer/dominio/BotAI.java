@@ -3,7 +3,8 @@ package dominio;
 /**
  * Representa al oponente controlado automáticamente por el computador (IA).
  * Implementa tres niveles reales de dificultad (Fácil, Normal y Difícil) basados
- * en reglas de decisión, predicción vectorial de trayectorias y tiempos de reacción.
+ * en reglas de decisión, predicción vectorial de trayectorias y tiempos de reacción,
+ * soportando cualquier poder especial y equipo configurado en el menú de inicio.
  */
 public class BotAI extends Character {
     private static final long serialVersionUID = 1L;
@@ -17,13 +18,36 @@ public class BotAI extends Character {
     private int currentDirection;
 
     /**
-     * Constructor del Bot oponente.
+     * Constructor del Bot oponente con habilidad por defecto (Teleport) y equipo Alemania.
      * @param x Coordenada X inicial.
      * @param y Coordenada Y inicial.
      * @param difficultyLevel Nivel de dificultad (1=Fácil, 2=Normal, 3=Difícil).
      */
     public BotAI(double x, double y, int difficultyLevel) {
-        super(x, y, 72, 92, new Teleport(), false);
+        this(x, y, difficultyLevel, new Teleport(), Team.alemania());
+    }
+
+    /**
+     * Constructor del Bot oponente con habilidad personalizada.
+     * @param x Coordenada X inicial.
+     * @param y Coordenada Y inicial.
+     * @param difficultyLevel Nivel de dificultad (1=Fácil, 2=Normal, 3=Difícil).
+     * @param specialAbility Habilidad especial asignada al Bot.
+     */
+    public BotAI(double x, double y, int difficultyLevel, Ability specialAbility) {
+        this(x, y, difficultyLevel, specialAbility, Team.alemania());
+    }
+
+    /**
+     * Constructor completo del Bot oponente con habilidad y equipo configurables.
+     * @param x Coordenada X inicial.
+     * @param y Coordenada Y inicial.
+     * @param difficultyLevel Nivel de dificultad (1=Fácil, 2=Normal, 3=Difícil).
+     * @param specialAbility Habilidad especial asignada al Bot.
+     * @param team Equipo nacional asignado al Bot.
+     */
+    public BotAI(double x, double y, int difficultyLevel, Ability specialAbility, Team team) {
+        super(x, y, 72, 92, specialAbility != null ? specialAbility : new Teleport(), false, team != null ? team : Team.alemania());
         this.difficultyLevel = validateDifficulty(difficultyLevel);
         this.reactionDelayCounter = 0;
         this.currentDirection = 0;
@@ -172,10 +196,11 @@ public class BotAI extends Character {
             kickTowardsOpponentGoal(ball);
         }
 
-        // Uso defensivo del poder especial
+        // Uso táctico del poder especial asignado
         if (getSpecialMeter() >= 100 && getSpecialAbility() != null && getSpecialAbility().isReady()) {
             boolean peligroso = ball.getVelocityX() > 3.5 && ballCenter > 560;
-            if (peligroso) {
+            boolean enRangoTiro = Math.abs(ballCenter - myCenter) < 120 && myCenter >= ballCenter;
+            if (peligroso || enRangoTiro) {
                 this.setFacingRight(false);
                 useSpecial(ball);
                 kickTowardsOpponentGoal(ball);
@@ -229,7 +254,7 @@ public class BotAI extends Character {
             kickTowardsOpponentGoal(ball);
         }
 
-        // Uso inteligente de la habilidad Teleport (ataque o emergencia)
+        // Uso inteligente del poder especial equipado (ataque o emergencia)
         if (getSpecialMeter() >= 100 && getSpecialAbility() != null && getSpecialAbility().isReady()) {
             boolean peligro = ball.getVelocityX() > 2.0 && ballCenter > 500;
             boolean contragolpe = ballCenter > 320 && ballCenter < 620 && ball.getY() < Ball.GROUND_Y - 40;

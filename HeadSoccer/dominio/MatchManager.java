@@ -1,11 +1,13 @@
 package dominio;
 
+import java.awt.Color;
 import java.io.File;
 import java.io.Serializable;
 
 /**
  * Clase coordinadora del dominio que administra el estado del partido,
- * las físicas, las colisiones, el cronómetro, el marcador y las dificultades.
+ * las físicas, las colisiones, el cronómetro, el marcador, las dificultades,
+ * la selección de poderes, equipos, colores de camiseta y el estadio.
  */
 public class MatchManager implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -30,6 +32,12 @@ public class MatchManager implements Serializable {
     private Ball ball;
     private Goal leftGoal;
     private Goal rightGoal;
+    private Stadium stadium;
+
+    // Preferencias configuradas para Jugador 1 y Jugador 2 / Bot en el menú de inicio
+    private String selectedP1AbilityName;
+    private String selectedP2AbilityName;
+    private boolean customP2AbilitySelected;
 
     /**
      * Constructor por defecto: inicia en modo contra el Bot con dificultad normal (2).
@@ -44,10 +52,15 @@ public class MatchManager implements Serializable {
      */
     public MatchManager(int difficultyLevel) {
         this.gameMode = MODE_PVE;
+        this.stadium = Stadium.getDefault();
+        this.selectedP1AbilityName = Ability.ABILITY_FIRE_STRIKE;
+        this.selectedP2AbilityName = Ability.ABILITY_TELEPORT;
+        this.customP2AbilitySelected = false;
+
         this.leftGoal = new Goal("LEFT", 15, Ball.GROUND_Y - 160, 65, 160);
         this.rightGoal = new Goal("RIGHT", 815, Ball.GROUND_Y - 160, 65, 160);
-        this.player1 = new Player("Jugador 1", 160, Ball.GROUND_Y - 92);
-        BotAI bot = new BotAI(660, Ball.GROUND_Y - 92, difficultyLevel);
+        this.player1 = new Player("Jugador 1", 160, Ball.GROUND_Y - 92, new FireStrike(), true, Team.colombia());
+        BotAI bot = new BotAI(660, Ball.GROUND_Y - 92, difficultyLevel, new Teleport(), Team.alemania());
         this.difficultyLevel = bot.getDifficultyLevel();
         this.player2 = bot;
         this.ball = new Ball(430, 180, 36);
@@ -70,6 +83,11 @@ public class MatchManager implements Serializable {
      * @throws HeadSoccerException Si el modo o la dificultad no son válidos.
      */
     public MatchManager(String gameMode, int difficultyLevel) throws HeadSoccerException {
+        this.stadium = Stadium.getDefault();
+        this.selectedP1AbilityName = Ability.ABILITY_FIRE_STRIKE;
+        this.selectedP2AbilityName = MODE_PVP.equals(gameMode) ? Ability.ABILITY_GIANT_KICK : Ability.ABILITY_TELEPORT;
+        this.customP2AbilitySelected = false;
+
         this.leftGoal = new Goal("LEFT", 15, Ball.GROUND_Y - 160, 65, 160);
         this.rightGoal = new Goal("RIGHT", 815, Ball.GROUND_Y - 160, 65, 160);
         this.ball = new Ball(430, 180, 36);
@@ -77,7 +95,9 @@ public class MatchManager implements Serializable {
     }
 
     /**
-     * Configura e inicia un nuevo partido en el modo especificado (contra Bot o 2 Jugadores).
+     * Configura e inicia un nuevo partido en el modo especificado (contra Bot o 2 Jugadores),
+     * conservando las selecciones de poderes, equipos, colores de camiseta y estadio.
+     *
      * @param gameMode Modo de juego (MODE_PVE o MODE_PVP).
      * @param difficultyLevel Nivel de dificultad de la IA (1=Fácil, 2=Normal, 3=Difícil).
      * @throws HeadSoccerException Si el modo de juego o la dificultad son inválidos.
@@ -90,33 +110,190 @@ public class MatchManager implements Serializable {
             throw new HeadSoccerException(HeadSoccerException.DIFICULTAD_INVALIDA);
         }
 
+        Team p1Team = (player1 != null) ? player1.getTeam() : Team.colombia();
+        Color p1Color = (player1 != null) ? player1.getShirtColor() : p1Team.getPrimaryShirtColor();
+        String p1Name = (player1 != null) ? player1.getPlayerName() : "Jugador 1";
+
+        Team p2Team = (player2 != null) ? player2.getTeam() : (MODE_PVP.equals(gameMode) ? Team.usa() : Team.alemania());
+        Color p2Color = (player2 != null) ? player2.getShirtColor() : p2Team.getPrimaryShirtColor();
+
+        String p1AbName = (selectedP1AbilityName != null) ? selectedP1AbilityName : Ability.ABILITY_FIRE_STRIKE;
+        String p2AbName;
+        if (customP2AbilitySelected && selectedP2AbilityName != null) {
+            p2AbName = selectedP2AbilityName;
+        } else {
+            p2AbName = MODE_PVP.equals(gameMode) ? Ability.ABILITY_GIANT_KICK : Ability.ABILITY_TELEPORT;
+            this.selectedP2AbilityName = p2AbName;
+        }
+
+        Ability p1Ability = Ability.createByName(p1AbName);
+        Ability p2Ability = Ability.createByName(p2AbName);
+
         this.gameMode = gameMode;
         this.difficultyLevel = difficultyLevel;
-        this.player1 = new Player("Jugador 1", 160, Ball.GROUND_Y - 92, new FireStrike(), true);
+
+        this.player1 = new Player(p1Name, 160, Ball.GROUND_Y - 92, p1Ability, true, p1Team);
+        this.player1.setShirtColor(p1Color);
 
         if (MODE_PVP.equals(gameMode)) {
-            this.player2 = new Player("Jugador 2", 660, Ball.GROUND_Y - 92, new GiantKick(), false);
+            this.player2 = new Player("Jugador 2", 660, Ball.GROUND_Y - 92, p2Ability, false, p2Team);
         } else {
-            this.player2 = new BotAI(660, Ball.GROUND_Y - 92, difficultyLevel);
+            this.player2 = new BotAI(660, Ball.GROUND_Y - 92, difficultyLevel, p2Ability, p2Team);
+        }
+        this.player2.setShirtColor(p2Color);
+
+        if (this.stadium == null) {
+            this.stadium = Stadium.getDefault();
         }
 
         startGame();
     }
 
     /**
-     * Inicia o reinicia el partido a su estado inicial conservando el modo actual.
+     * Configura de forma integral un partido con modo, dificultad, poderes, equipos y estadio.
+     *
+     * @param gameMode Modo de juego (MODE_PVE o MODE_PVP).
+     * @param difficultyLevel Nivel de dificultad para el Bot (1, 2 o 3).
+     * @param p1AbilityName Nombre del poder para el Jugador 1.
+     * @param p2AbilityName Nombre del poder para el Jugador 2 o Bot.
+     * @param p1TeamName Nombre del equipo para el Jugador 1 ("Alemania", "Colombia", "USA").
+     * @param p2TeamName Nombre del equipo para el Jugador 2 o Bot ("Alemania", "Colombia", "USA").
+     * @param stadiumName Nombre del estadio seleccionado.
+     * @throws HeadSoccerException Si alguno de los parámetros es inválido.
+     */
+    public void configureMatch(
+        String gameMode,
+        int difficultyLevel,
+        String p1AbilityName,
+        String p2AbilityName,
+        String p1TeamName,
+        String p2TeamName,
+        String stadiumName
+    ) throws HeadSoccerException {
+        setPlayer1Ability(p1AbilityName);
+        setPlayer2Ability(p2AbilityName);
+        setPlayer1Team(p1TeamName);
+        setPlayer2Team(p2TeamName);
+        setStadium(stadiumName);
+        configureMatch(gameMode, difficultyLevel);
+    }
+
+    /**
+     * Selecciona el poder especial para el Jugador 1 (tanto en PVP como en PVE).
+     * @param abilityName Nombre del poder ("FireStrike", "GiantKick", "Teleport").
+     * @throws HeadSoccerException Si el poder no es válido.
+     */
+    public void setPlayer1Ability(String abilityName) throws HeadSoccerException {
+        Ability ability = Ability.createByName(abilityName);
+        this.selectedP1AbilityName = ability.getName();
+        if (this.player1 != null) {
+            this.player1.setSpecialAbility(ability);
+        }
+    }
+
+    /**
+     * Selecciona el poder especial para el Jugador 2 (en modo PVP) o para el Bot (en modo PVE).
+     * @param abilityName Nombre del poder ("FireStrike", "GiantKick", "Teleport").
+     * @throws HeadSoccerException Si el poder no es válido.
+     */
+    public void setPlayer2Ability(String abilityName) throws HeadSoccerException {
+        Ability ability = Ability.createByName(abilityName);
+        this.selectedP2AbilityName = ability.getName();
+        this.customP2AbilitySelected = true;
+        if (this.player2 != null) {
+            this.player2.setSpecialAbility(ability);
+        }
+    }
+
+    /**
+     * Selecciona el equipo nacional del Jugador 1 y actualiza su camiseta al color oficial del equipo.
+     * @param teamName Nombre del equipo ("Colombia", "Alemania", "USA").
+     * @throws HeadSoccerException Si el equipo no existe.
+     */
+    public void setPlayer1Team(String teamName) throws HeadSoccerException {
+        Team team = Team.getByName(teamName);
+        if (this.player1 != null) {
+            this.player1.setTeam(team);
+        }
+    }
+
+    /**
+     * Selecciona el equipo nacional del Jugador 2 o del Bot y actualiza su camiseta al color oficial del equipo.
+     * @param teamName Nombre del equipo ("Colombia", "Alemania", "USA").
+     * @throws HeadSoccerException Si el equipo no existe.
+     */
+    public void setPlayer2Team(String teamName) throws HeadSoccerException {
+        Team team = Team.getByName(teamName);
+        if (this.player2 != null) {
+            this.player2.setTeam(team);
+        }
+    }
+
+    /**
+     * Personaliza el color de la camiseta del Jugador 1.
+     * @param color Color de camiseta deseado.
+     * @throws HeadSoccerException Si el color es nulo.
+     */
+    public void setPlayer1ShirtColor(Color color) throws HeadSoccerException {
+        if (this.player1 == null) {
+            throw new HeadSoccerException(HeadSoccerException.PERSONAJE_INVALIDO);
+        }
+        this.player1.setShirtColor(color);
+    }
+
+    /**
+     * Personaliza el color de la camiseta del Jugador 2 o del Bot.
+     * @param color Color de camiseta deseado.
+     * @throws HeadSoccerException Si el color es nulo.
+     */
+    public void setPlayer2ShirtColor(Color color) throws HeadSoccerException {
+        if (this.player2 == null) {
+            throw new HeadSoccerException(HeadSoccerException.PERSONAJE_INVALIDO);
+        }
+        this.player2.setShirtColor(color);
+    }
+
+    /**
+     * Selecciona el estadio del partido por su nombre.
+     * @param stadiumName Nombre del estadio ("Metropolitano", "Allianz Arena", "Rose Bowl").
+     * @throws HeadSoccerException Si el estadio no existe.
+     */
+    public void setStadium(String stadiumName) throws HeadSoccerException {
+        this.stadium = Stadium.getByName(stadiumName);
+    }
+
+    /**
+     * Selecciona directamente una instancia de estadio para el partido.
+     * @param stadium Instancia del estadio.
+     * @throws HeadSoccerException Si el estadio es nulo.
+     */
+    public void setStadium(Stadium stadium) throws HeadSoccerException {
+        if (stadium == null) {
+            throw new HeadSoccerException(HeadSoccerException.ESTADIO_INVALIDO);
+        }
+        this.stadium = stadium;
+    }
+
+    /**
+     * Inicia o reinicia el partido a su estado inicial conservando el modo y personalización actual.
      */
     public void startGame() {
         this.scorePlayer1 = 0;
         this.scorePlayer2 = 0;
         this.timeRemaining = 90;
         this.matchState = STATE_PLAYING;
-        if (player1 != null && player1.getSpecialAbility() != null) {
-            player1.getSpecialAbility().reset();
+        if (player1 != null) {
+            player1.deactivatePowerAura();
+            if (player1.getSpecialAbility() != null) {
+                player1.getSpecialAbility().reset();
+            }
             player1.setSpecialMeter(80);
         }
-        if (player2 != null && player2.getSpecialAbility() != null) {
-            player2.getSpecialAbility().reset();
+        if (player2 != null) {
+            player2.deactivatePowerAura();
+            if (player2.getSpecialAbility() != null) {
+                player2.getSpecialAbility().reset();
+            }
             player2.setSpecialMeter(80);
         }
         resetPositions();
@@ -278,12 +455,12 @@ public class MatchManager implements Serializable {
      */
     public String getWinnerMessage() {
         if (scorePlayer1 > scorePlayer2) {
-            return "¡VICTORIA PARA " + player1.getPlayerName().toUpperCase() + "!";
+            return "¡VICTORIA PARA " + player1.getPlayerName().toUpperCase() + " (" + player1.getTeam().getName().toUpperCase() + ")!";
         } else if (scorePlayer2 > scorePlayer1) {
             if (player2 instanceof Player) {
-                return "¡VICTORIA PARA " + ((Player) player2).getPlayerName().toUpperCase() + "!";
+                return "¡VICTORIA PARA " + ((Player) player2).getPlayerName().toUpperCase() + " (" + player2.getTeam().getName().toUpperCase() + ")!";
             }
-            return "¡VICTORIA PARA EL BOT AI!";
+            return "¡VICTORIA PARA EL BOT AI (" + player2.getTeam().getName().toUpperCase() + ")!";
         } else {
             return "¡EMPATE!";
         }
@@ -318,6 +495,7 @@ public class MatchManager implements Serializable {
     public Ball getBall() { return ball; }
     public Goal getLeftGoal() { return leftGoal; }
     public Goal getRightGoal() { return rightGoal; }
+    public Stadium getStadium() { return stadium != null ? stadium : Stadium.getDefault(); }
     public int getScorePlayer1() { return scorePlayer1; }
     public int getScorePlayer2() { return scorePlayer2; }
     public int getTimeRemaining() { return timeRemaining; }

@@ -457,4 +457,81 @@ public class HeadSoccerJUnit5Test {
             match.getPlayer1().setPlayerName("");
         });
     }
+
+    // ==========================================
+    // SECCIÓN 9: PODERES, EQUIPOS, CAMISETAS, ESTADIOS Y AURA
+    // ==========================================
+
+    @Test
+    @DisplayName("Selección de poderes en menú para PVE (Player 1 y Bot) y PVP (Player 1 y Player 2)")
+    public void testSeleccionPoderesPVEyPVP() throws HeadSoccerException {
+        match.setPlayer1Ability(Ability.ABILITY_TELEPORT);
+        match.setPlayer2Ability(Ability.ABILITY_GIANT_KICK);
+        match.configureMatch(MatchManager.MODE_PVE, BotAI.DIFFICULTY_HARD);
+
+        assertTrue(match.getPlayer1().getSpecialAbility() instanceof Teleport);
+        assertTrue(match.getBotPlayer2().getSpecialAbility() instanceof GiantKick);
+
+        match.setPlayer1Ability(Ability.ABILITY_GIANT_KICK);
+        match.setPlayer2Ability(Ability.ABILITY_FIRE_STRIKE);
+        match.configureMatch(MatchManager.MODE_PVP, BotAI.DIFFICULTY_NORMAL);
+
+        assertTrue(match.getPlayer1().getSpecialAbility() instanceof GiantKick);
+        assertTrue(match.getHumanPlayer2().getSpecialAbility() instanceof FireStrike);
+    }
+
+    @Test
+    @DisplayName("Activación de aura del color del poder en todos los jugadores (Player y BotAI)")
+    public void testAuraColorSegunPoder() throws HeadSoccerException {
+        Player p1 = match.getPlayer1();
+        BotAI bot = match.getBotPlayer2();
+        Ball b = match.getBall();
+
+        // FireStrike -> Aura naranja fuego
+        p1.setSpecialAbility(new FireStrike());
+        p1.setSpecialMeter(100);
+        assertTrue(p1.useSpecial(b));
+        assertTrue(p1.isAuraActive());
+        assertEquals(FireStrike.AURA_COLOR, p1.getAuraColor());
+
+        // Teleport -> Aura cian
+        bot.setSpecialAbility(new Teleport());
+        bot.setSpecialMeter(100);
+        assertTrue(bot.useSpecial(b));
+        assertTrue(bot.isAuraActive());
+        assertEquals(Teleport.AURA_COLOR, bot.getAuraColor());
+
+        // GiantKick -> Aura verde esmeralda
+        p1.setSpecialAbility(new GiantKick());
+        p1.setSpecialMeter(100);
+        assertTrue(p1.useSpecial(b));
+        assertTrue(p1.isAuraActive());
+        assertEquals(GiantKick.AURA_COLOR, p1.getAuraColor());
+    }
+
+    @Test
+    @DisplayName("Selección de equipos (Alemania, Colombia, USA), color de camiseta y estadios")
+    public void testEquiposCamisetaYEstadios() throws HeadSoccerException {
+        match.configureMatch(
+            MatchManager.MODE_PVP,
+            BotAI.DIFFICULTY_NORMAL,
+            Ability.ABILITY_FIRE_STRIKE,
+            Ability.ABILITY_TELEPORT,
+            Team.TEAM_ALEMANIA,
+            Team.TEAM_USA,
+            Stadium.STADIUM_ALLIANZ
+        );
+
+        assertEquals("Alemania", match.getPlayer1().getTeam().getName());
+        assertEquals("USA", match.getPlayer2().getTeam().getName());
+        assertEquals(Stadium.STADIUM_ALLIANZ, match.getStadium().getName());
+
+        java.awt.Color customShirt = new java.awt.Color(120, 40, 200);
+        match.setPlayer1ShirtColor(customShirt);
+        assertEquals(customShirt, match.getPlayer1().getShirtColor());
+
+        assertThrows(HeadSoccerException.class, () -> match.setPlayer1Team("EquipoInvalido"));
+        assertThrows(HeadSoccerException.class, () -> match.setStadium("EstadioInvalido"));
+        assertThrows(HeadSoccerException.class, () -> match.setPlayer2Ability("PoderInvalido"));
+    }
 }

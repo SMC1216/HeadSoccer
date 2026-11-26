@@ -1,7 +1,9 @@
 package dominio;
 
+import java.awt.Color;
+
 /**
- * habilidad especial de teletransporte para colocarse detras del balon
+ * habilidad especial de teletransporte para colocarse detras del balon (aura color cian eléctrico)
  * 
  * @author gaby-mathias
  * @version 2026
@@ -9,14 +11,17 @@ package dominio;
 public class Teleport extends Ability {
     private static final long serialVersionUID = 1L;
 
+    /** Color característico del aura de teletransporte */
+    public static final Color AURA_COLOR = new Color(0, 220, 255);
+
     /** distancia en pixeles de separacion respecto al balon */
     private double offsetDistance;
 
     /**
-     * constructor del teletransporte con 8s de cooldown y 1s de duracion
+     * constructor del teletransporte con 8s de cooldown, 2s de duracion de aura y aura cian
      */
     public Teleport() {
-        super(8, 1);
+        super(8, 2, AURA_COLOR);
         this.offsetDistance = 55.0;
     }
 

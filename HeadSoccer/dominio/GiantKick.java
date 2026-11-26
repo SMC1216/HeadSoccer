@@ -1,7 +1,9 @@
 package dominio;
 
+import java.awt.Color;
+
 /**
- * habilidad especial de patada gigante que empuja con gran fuerza el balon
+ * habilidad especial de patada gigante que empuja con gran fuerza el balon (aura color verde-dorado eléctrico)
  * 
  * @author gaby-mathias
  * @version 2026
@@ -9,14 +11,17 @@ package dominio;
 public class GiantKick extends Ability {
     private static final long serialVersionUID = 1L;
 
+    /** Color característico del aura de patada gigante */
+    public static final Color AURA_COLOR = new Color(50, 235, 100);
+
     /** multiplicador de poder de impacto de la patada gigante */
     private double powerMultiplier;
 
     /**
-     * constructor de la patada gigante con 12s de cooldown y 2s de duracion
+     * constructor de la patada gigante con 12s de cooldown, 2s de duracion y aura verde esmeralda/dorada
      */
     public GiantKick() {
-        super(12, 2);
+        super(12, 2, AURA_COLOR);
         this.powerMultiplier = 21.0;
     }
 

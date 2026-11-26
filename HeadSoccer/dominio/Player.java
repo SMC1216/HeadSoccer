@@ -9,13 +9,13 @@ public class Player extends Character {
     private String playerName;
 
     /**
-     * Constructor por defecto para el Jugador 1 (mira a la derecha con FireStrike).
+     * Constructor por defecto para el Jugador 1 (mira a la derecha con FireStrike y equipo Colombia).
      * @param playerName Nombre del jugador.
      * @param x Posición horizontal inicial.
      * @param y Posición vertical inicial.
      */
     public Player(String playerName, double x, double y) {
-        this(playerName, x, y, new FireStrike(), true);
+        this(playerName, x, y, new FireStrike(), true, Team.colombia());
     }
 
     /**
@@ -27,7 +27,27 @@ public class Player extends Character {
      * @param facingRight true si mira hacia la derecha, false si mira hacia la izquierda.
      */
     public Player(String playerName, double x, double y, Ability specialAbility, boolean facingRight) {
-        super(x, y, 72, 92, specialAbility != null ? specialAbility : new FireStrike(), facingRight);
+        this(
+            playerName,
+            x,
+            y,
+            specialAbility,
+            facingRight,
+            facingRight ? Team.colombia() : Team.usa()
+        );
+    }
+
+    /**
+     * Constructor completo con habilidad, orientación y equipo seleccionado.
+     * @param playerName Nombre del jugador.
+     * @param x Posición horizontal inicial.
+     * @param y Posición vertical inicial.
+     * @param specialAbility Habilidad especial asignada al jugador.
+     * @param facingRight true si mira hacia la derecha, false si mira hacia la izquierda.
+     * @param team Equipo nacional asignado al jugador.
+     */
+    public Player(String playerName, double x, double y, Ability specialAbility, boolean facingRight, Team team) {
+        super(x, y, 72, 92, specialAbility != null ? specialAbility : new FireStrike(), facingRight, team);
         this.playerName = (playerName != null && !playerName.trim().isEmpty()) ? playerName.trim() : "Jugador";
     }
 

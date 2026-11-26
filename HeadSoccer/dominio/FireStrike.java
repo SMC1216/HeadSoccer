@@ -1,7 +1,9 @@
 package dominio;
 
+import java.awt.Color;
+
 /**
- * habilidad especial de tiro de fuego
+ * habilidad especial de tiro de fuego (aura color rojo-naranja intenso)
  * 
  * @author gaby-mathias
  * @version 2026
@@ -9,14 +11,17 @@ package dominio;
 public class FireStrike extends Ability {
     private static final long serialVersionUID = 1L;
 
+    /** Color característico del aura de fuego */
+    public static final Color AURA_COLOR = new Color(255, 69, 0);
+
     /** multiplicador de fuerza para el tiro */
     private double powerMultiplier;
 
     /**
-     * constructor del tiro de fuego con 10s de cooldown y 3s de duracion
+     * constructor del tiro de fuego con 10s de cooldown, 3s de duracion y aura naranja-fuego
      */
     public FireStrike() {
-        super(10, 3);
+        super(10, 3, AURA_COLOR);
         this.powerMultiplier = 18.5;
     }
 
