@@ -29,6 +29,10 @@ public class HeadSoccerException extends Exception {
     public static final String ESTADIO_INVALIDO = "El estadio seleccionado no es válido o no existe.";
     public static final String PODER_INVALIDO = "El poder especial seleccionado no es válido o no existe.";
     public static final String COLOR_INVALIDO = "El color de camiseta especificado no puede ser nulo.";
+    public static final String REGLA_JUEGO_INVALIDA = "El tipo de partido seleccionado no es válido (debe ser TIME o GOALS).";
+    public static final String TIEMPO_INVALIDO = "El tiempo configurado para el partido debe ser mayor a cero.";
+    public static final String LIMITE_GOLES_INVALIDO = "El límite de goles para el partido debe ser al menos 1.";
+    public static final String ESTADISTICA_INVALIDA = "No es posible mejorar la estadística (límite máximo 10 alcanzado o sin puntos disponibles).";
 
     /**
      * constructor simple con mensaje descriptivo

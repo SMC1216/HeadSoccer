@@ -55,11 +55,7 @@ public abstract class Ability implements Serializable {
      * @return Lista de identificadores de poderes disponibles.
      */
     public static List<String> getAvailableAbilityNames() {
-        return Collections.unmodifiableList(Arrays.asList(
-            ABILITY_FIRE_STRIKE,
-            ABILITY_GIANT_KICK,
-            ABILITY_TELEPORT
-        ));
+        return AbilityFactory.getAvailableNames();
     }
 
     /**
@@ -69,18 +65,7 @@ public abstract class Ability implements Serializable {
      * @throws HeadSoccerException Si el nombre es nulo o no corresponde a un poder válido.
      */
     public static Ability createByName(String name) throws HeadSoccerException {
-        if (name == null || name.trim().isEmpty()) {
-            throw new HeadSoccerException(HeadSoccerException.PODER_INVALIDO);
-        }
-        String clean = name.trim();
-        if (ABILITY_FIRE_STRIKE.equalsIgnoreCase(clean)) {
-            return new FireStrike();
-        } else if (ABILITY_GIANT_KICK.equalsIgnoreCase(clean)) {
-            return new GiantKick();
-        } else if (ABILITY_TELEPORT.equalsIgnoreCase(clean)) {
-            return new Teleport();
-        }
-        throw new HeadSoccerException(HeadSoccerException.PODER_INVALIDO);
+        return AbilityFactory.create(name);
     }
 
     /**

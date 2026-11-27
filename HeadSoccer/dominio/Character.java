@@ -4,8 +4,8 @@ import java.awt.Color;
 
 /**
  * Clase abstracta que representa a un personaje (muñeco) dentro de la cancha.
- * Gestiona el movimiento, salto, patada, equipo, color de camiseta, habilidad especial
- * y el aura energética del color del poder que emite cuando activa su habilidad.
+ * Gestiona movimiento, salto, patada, equipo, camiseta, estadísticas (1-10),
+ * habilidad especial y el aura energética que emite cuando activa un poder.
  */
 public abstract class Character extends GameObject implements ICollidable {
     private static final long serialVersionUID = 1L;
@@ -19,9 +19,10 @@ public abstract class Character extends GameObject implements ICollidable {
     private Ability specialAbility;
     private boolean facingRight;
 
-    // Personalización de estilo y equipo
+    // Personalización de estilo, equipo y estadísticas del jugador
     private Team team;
     private Color shirtColor;
+    private PlayerStats stats;
 
     // Estado del aura al activar un poder especial
     private boolean auraActive;
@@ -42,12 +43,13 @@ public abstract class Character extends GameObject implements ICollidable {
 
     public Character(double x, double y, int width, int height, Ability specialAbility, boolean facingRight, Team team) {
         super(x, y, width, height);
-        this.speed = 6.0;
-        this.jumpForce = 14.0;
+        this.stats = new PlayerStats();
+        this.speed = stats.getEffectiveSpeed();
+        this.jumpForce = stats.getEffectiveJumpForce();
         this.velocityX = 0.0;
         this.velocityY = 0.0;
         this.isGrounded = true;
-        this.specialMeter = 80; // Inicia al 80% para probar el poder rápidamente
+        this.specialMeter = 80;
         this.specialAbility = specialAbility != null ? specialAbility : new FireStrike();
         this.facingRight = facingRight;
         this.team = team != null ? team : (facingRight ? Team.colombia() : Team.alemania());
@@ -58,6 +60,7 @@ public abstract class Character extends GameObject implements ICollidable {
     }
 
     public void move(int direction) {
+        this.speed = getStats().getEffectiveSpeed();
         this.velocityX = direction * speed;
         if (direction > 0) this.facingRight = true;
         else if (direction < 0) this.facingRight = false;
@@ -65,6 +68,7 @@ public abstract class Character extends GameObject implements ICollidable {
 
     public void jump() {
         if (isGrounded) {
+            this.jumpForce = getStats().getEffectiveJumpForce();
             this.velocityY = -jumpForce;
             this.isGrounded = false;
         }
@@ -75,8 +79,10 @@ public abstract class Character extends GameObject implements ICollidable {
         Bounds kickArea = new Bounds(getX() - 18, getY() - 10, getWidth() + 36, getHeight() + 20);
         if (kickArea.intersects(ball.getBounds())) {
             double dir = facingRight ? 1.0 : -1.0;
-            ball.addForce(dir * 13.0, -9.5);
-            gainSpecial(20);
+            double forceX = getStats().getEffectiveKickForceX();
+            double forceY = getStats().getEffectiveKickForceY();
+            ball.addForce(dir * forceX, forceY);
+            gainSpecial(20 + getStats().getEffectiveSpecialBonus());
         }
     }
 
@@ -99,7 +105,6 @@ public abstract class Character extends GameObject implements ICollidable {
 
     /**
      * Enciende el aura energética del personaje con el color del poder activado.
-     * Este método es compartido por todos los jugadores implementados (Player y BotAI).
      *
      * @param powerColor Color del aura asociado al poder ejecutado.
      */
@@ -115,28 +120,15 @@ public abstract class Character extends GameObject implements ICollidable {
         this.auraTickCounter = 0;
     }
 
-    /**
-     * Desactiva el aura energética del personaje.
-     */
     public void deactivatePowerAura() {
         this.auraActive = false;
         this.auraTickCounter = 0;
     }
 
-    /**
-     * Indica si el jugador tiene actualmente activa el aura de su poder especial.
-     *
-     * @return true si el aura está activa, false en caso contrario.
-     */
     public boolean isAuraActive() {
         return auraActive || (specialAbility != null && specialAbility.isActive());
     }
 
-    /**
-     * Obtiene el color actual del aura del jugador según el poder especial activo o equipado.
-     *
-     * @return Color del aura del poder.
-     */
     public Color getAuraColor() {
         if (auraColor != null) {
             return auraColor;
@@ -174,14 +166,12 @@ public abstract class Character extends GameObject implements ICollidable {
         setX(getX() + velocityX);
         setY(getY() + velocityY);
 
-        // Contacto con el césped
         if (getY() + getHeight() >= Ball.GROUND_Y) {
             setY(Ball.GROUND_Y - getHeight());
             velocityY = 0.0;
             isGrounded = true;
         }
 
-        // Límites laterales de la cancha
         if (getX() < Ball.LEFT_WALL + 55) {
             setX(Ball.LEFT_WALL + 55);
         } else if (getX() + getWidth() > Ball.RIGHT_WALL - 55) {
@@ -198,12 +188,6 @@ public abstract class Character extends GameObject implements ICollidable {
         return new Bounds(getX(), getY(), getWidth(), getHeight());
     }
 
-    /**
-     * Reinicia el estado cinemático y la posición del personaje.
-     * @param startX Coordenada X inicial.
-     * @param startY Coordenada Y inicial.
-     * @param faceRight Orientación inicial (true = derecha, false = izquierda).
-     */
     public void resetState(double startX, double startY, boolean faceRight) {
         setPosition(startX, startY);
         this.velocityX = 0.0;
@@ -218,17 +202,12 @@ public abstract class Character extends GameObject implements ICollidable {
             return;
         }
         if (other instanceof Ball) {
-            gainSpecial(5);
+            gainSpecial(5 + (getStats().getEffectiveSpecialBonus() / 2));
         } else if (other instanceof Character) {
             resolveCharacterCollision((Character) other);
         }
     }
 
-    /**
-     * Resuelve la colisión física cuerpo a cuerpo entre dos personajes,
-     * evitando que se atraviesen y respetando los límites de la cancha.
-     * @param other El otro personaje con el que colisiona.
-     */
     private void resolveCharacterCollision(Character other) {
         Bounds myBounds = this.getBounds();
         Bounds otherBounds = other.getBounds();
@@ -242,13 +221,12 @@ public abstract class Character extends GameObject implements ICollidable {
         double myCenterY = myBounds.getCenterY();
         double otherCenterY = otherBounds.getCenterY();
 
-        // Si un personaje cae encima de la cabeza del otro, rebota ligeramente y se desliza
         if (Math.abs(myCenterY - otherCenterY) > 35 && Math.abs(myCenterX - otherCenterX) < 55) {
             if (myCenterY < otherCenterY) {
-                this.velocityY = -jumpForce * 0.55;
+                this.velocityY = -getStats().getEffectiveJumpForce() * 0.55;
                 this.isGrounded = false;
             } else {
-                other.velocityY = -other.jumpForce * 0.55;
+                other.velocityY = -other.getStats().getEffectiveJumpForce() * 0.55;
                 other.isGrounded = false;
             }
         }
@@ -269,11 +247,9 @@ public abstract class Character extends GameObject implements ICollidable {
                 double newThisX = Math.max(minX, this.getX() - push);
                 double newOtherX = Math.min(maxOtherX, other.getX() + push);
 
-                // Si uno quedó contra la pared izquierda, desplazar al otro el resto
                 if (newThisX + this.getWidth() > newOtherX) {
                     newOtherX = Math.min(maxOtherX, newThisX + this.getWidth() + 1.0);
                 }
-                // Si el otro quedó contra la pared derecha, desplazar a este hacia la izquierda
                 if (newThisX + this.getWidth() > newOtherX) {
                     newThisX = Math.max(minX, newOtherX - this.getWidth() - 1.0);
                 }
@@ -303,11 +279,6 @@ public abstract class Character extends GameObject implements ICollidable {
         }
     }
 
-    /**
-     * Cambia el equipo del personaje y actualiza el color de su camiseta al color principal del equipo.
-     * @param team Nuevo equipo del jugador.
-     * @throws HeadSoccerException Si el equipo es nulo.
-     */
     public void setTeam(Team team) throws HeadSoccerException {
         if (team == null) {
             throw new HeadSoccerException(HeadSoccerException.EQUIPO_INVALIDO);
@@ -316,20 +287,10 @@ public abstract class Character extends GameObject implements ICollidable {
         this.shirtColor = team.getPrimaryShirtColor();
     }
 
-    /**
-     * Cambia el equipo del personaje buscándolo por su nombre ("Alemania", "Colombia", "USA").
-     * @param teamName Nombre del equipo.
-     * @throws HeadSoccerException Si el nombre no corresponde a un equipo válido.
-     */
     public void setTeamByName(String teamName) throws HeadSoccerException {
-        setTeam(Team.getByName(teamName));
+        setTeam(TeamFactory.create(teamName));
     }
 
-    /**
-     * Personaliza el color de la camiseta del jugador independientemente del equipo.
-     * @param shirtColor Nuevo color de camiseta.
-     * @throws HeadSoccerException Si el color es nulo.
-     */
     public void setShirtColor(Color shirtColor) throws HeadSoccerException {
         if (shirtColor == null) {
             throw new HeadSoccerException(HeadSoccerException.COLOR_INVALIDO);
@@ -337,13 +298,23 @@ public abstract class Character extends GameObject implements ICollidable {
         this.shirtColor = shirtColor;
     }
 
-    /**
-     * Asigna una habilidad especial por su nombre ("FireStrike", "GiantKick", "Teleport").
-     * @param abilityName Nombre del poder especial.
-     * @throws HeadSoccerException Si el nombre no corresponde a ningún poder válido.
-     */
     public void setSpecialAbilityByName(String abilityName) throws HeadSoccerException {
-        setSpecialAbility(Ability.createByName(abilityName));
+        setSpecialAbility(AbilityFactory.create(abilityName));
+    }
+
+    public PlayerStats getStats() {
+        if (stats == null) {
+            stats = new PlayerStats();
+        }
+        return stats;
+    }
+
+    public void setStats(PlayerStats stats) {
+        if (stats != null) {
+            this.stats = stats;
+            this.speed = stats.getEffectiveSpeed();
+            this.jumpForce = stats.getEffectiveJumpForce();
+        }
     }
 
     public boolean isFacingRight() { return facingRight; }

@@ -534,4 +534,32 @@ public class HeadSoccerJUnit5Test {
         assertThrows(HeadSoccerException.class, () -> match.setStadium("EstadioInvalido"));
         assertThrows(HeadSoccerException.class, () -> match.setPlayer2Ability("PoderInvalido"));
     }
+
+    @Test
+    @DisplayName("Estrategias del Bot (Torpe, Ofensiva, Defensiva, Experta), tiempo/goles maleables y estadísticas 1-10")
+    public void testEstrategiasReglasYEstadisticas() throws HeadSoccerException {
+        // 1. Estrategias con Factory
+        match.setBotStrategy(BotStrategy.STRATEGY_TORPE);
+        assertEquals("Torpe", match.getBotStrategyName());
+        match.setBotStrategy(BotStrategy.STRATEGY_DEFENSIVA);
+        assertEquals("Defensiva", match.getBotStrategyName());
+        match.setBotStrategy(BotStrategy.STRATEGY_EXPERTA);
+        assertEquals("Experta", match.getBotStrategyName());
+
+        // 2. Partido a límite de goles
+        match.setMatchRule(MatchManager.RULE_GOALS);
+        match.setGoalLimit(1);
+        match.startGame();
+        Goal rightGoal = match.getRightGoal();
+        match.getBall().setPosition(rightGoal.getX() + 15, rightGoal.getY() + 40);
+        match.checkCollisions();
+        assertEquals(MatchManager.STATE_FINISHED, match.getMatchState());
+
+        // 3. Estadísticas (1 a 10) y reinicio
+        PlayerStats p1Stats = match.getPlayer1Stats();
+        match.upgradePlayer1Stat(PlayerStats.STAT_KICK);
+        assertEquals(2, p1Stats.getKick());
+        match.resetPlayer1Stats();
+        assertEquals(1, p1Stats.getKick());
+    }
 }

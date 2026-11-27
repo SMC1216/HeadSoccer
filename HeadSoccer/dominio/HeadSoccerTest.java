@@ -663,4 +663,90 @@ public class HeadSoccerTest {
     public void deberiaLanzarExcepcionConPoderInexistente() throws HeadSoccerException {
         match.setPlayer1Ability("SuperRayoLaser");
     }
+
+    // ==========================================================
+    // 11. ESTRATEGIAS DEL BOT, FÁBRICAS, REGLAS MALEABLES Y ESTADÍSTICAS
+    // ==========================================================
+
+    @Test
+    public void deberiaConfigurarLasCuatroEstrategiasDelBotMedianteFactory() throws HeadSoccerException {
+        String[] estrategias = new String[] {
+            BotStrategy.STRATEGY_TORPE,
+            BotStrategy.STRATEGY_OFENSIVA,
+            BotStrategy.STRATEGY_DEFENSIVA,
+            BotStrategy.STRATEGY_EXPERTA
+        };
+
+        for (String nombre : estrategias) {
+            match.setBotStrategy(nombre);
+            assertEquals(nombre, match.getBotStrategyName());
+            match.getBotPlayer2().calculateMove(match.getBall());
+        }
+    }
+
+    @Test
+    public void deberiaPermitirTiempoDeJuegoMaleable() throws HeadSoccerException {
+        match.setMatchRule(MatchManager.RULE_TIME);
+        match.setConfiguredDuration(30);
+        match.startGame();
+
+        assertEquals(30, match.getTimeRemaining());
+        for (int i = 0; i < 30; i++) {
+            match.decrementTimer();
+        }
+        assertEquals(0, match.getTimeRemaining());
+        assertEquals(MatchManager.STATE_FINISHED, match.getMatchState());
+    }
+
+    @Test
+    public void deberiaFinalizarPartidoAlAlcanzarLimiteDeGoles() throws HeadSoccerException {
+        match.setMatchRule(MatchManager.RULE_GOALS);
+        match.setGoalLimit(2);
+        match.startGame();
+
+        Ball b = match.getBall();
+        Goal rightGoal = match.getRightGoal();
+
+        // Gol 1
+        b.setPosition(rightGoal.getX() + 15, rightGoal.getY() + 40);
+        match.checkCollisions();
+        assertEquals(1, match.getScorePlayer1());
+        assertEquals(MatchManager.STATE_PLAYING, match.getMatchState());
+
+        // Gol 2 -> Alcanza el límite de 2 goles y termina
+        b.setPosition(rightGoal.getX() + 15, rightGoal.getY() + 40);
+        match.checkCollisions();
+        assertEquals(2, match.getScorePlayer1());
+        assertEquals(MatchManager.STATE_FINISHED, match.getMatchState());
+    }
+
+    @Test
+    public void deberiaMejorarYReiniciarEstadisticasAplicadasATodosLosPersonajes() throws HeadSoccerException {
+        PlayerStats stats = match.getPlayer1Stats();
+        assertEquals(1, stats.getSpeed());
+        assertEquals(1, stats.getJump());
+        assertEquals(1, stats.getKick());
+        assertEquals(1, stats.getPower());
+
+        double velBase = stats.getEffectiveSpeed();
+        match.upgradePlayer1Stat(PlayerStats.STAT_SPEED);
+        match.upgradePlayer1Stat(PlayerStats.STAT_JUMP);
+
+        assertEquals(2, stats.getSpeed());
+        assertEquals(2, stats.getJump());
+        assertTrue(stats.getEffectiveSpeed() > velBase);
+
+        // Cambiar de personaje/equipo y reconfigurar partido: las estadísticas se mantienen
+        match.setPlayer1Team(Team.TEAM_USA);
+        match.configureMatch(MatchManager.MODE_PVE, BotAI.LEVEL_EXPERTA);
+        assertEquals(2, match.getPlayer1().getStats().getSpeed());
+        assertEquals(2, match.getPlayer1().getStats().getJump());
+
+        // Reiniciar puntos devuelve todas las estadísticas a 1
+        int totalEarned = stats.getTotalEarnedPoints();
+        match.resetPlayer1Stats();
+        assertEquals(1, stats.getSpeed());
+        assertEquals(1, stats.getJump());
+        assertEquals(totalEarned, stats.getAvailablePoints());
+    }
 }

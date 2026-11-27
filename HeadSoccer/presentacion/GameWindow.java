@@ -3,10 +3,12 @@ package presentacion;
 import dominio.Ability;
 import dominio.Ball;
 import dominio.BotAI;
+import dominio.BotStrategy;
 import dominio.Character;
 import dominio.Goal;
 import dominio.HeadSoccerException;
 import dominio.MatchManager;
+import dominio.PlayerStats;
 import dominio.Stadium;
 import dominio.Team;
 
@@ -20,12 +22,11 @@ import javax.swing.border.EmptyBorder;
 
 /**
  * Ventana principal (Vista-Controlador) del juego Head Soccer.
- * Presenta el menú inicial con configuración completa de partida:
- * - Selección de modo (1J vs Bot PVE, 2 Jugadores PVP o Cargar Partida).
- * - Selección de poder especial para Jugador 1 y Jugador 2 / Bot AI.
- * - Selección de equipo nacional (Colombia, Alemania, USA) y edición de color de camiseta.
- * - Selección de estadio (Metropolitano, Allianz Arena, Rose Bowl).
- * - Renderizado de aura energética del color del poder activo alrededor de cualquier jugador.
+ * Soporta redimensionamiento dinámico (maximizar y reducir ventana),
+ * selección de estrategias del Bot (Torpe, Ofensiva, Defensiva, Experta),
+ * tipo de partido por tiempo maleable o límite de goles,
+ * mejoras de estadísticas del jugador (1 a 10 puntos),
+ * equipos, colores de camiseta, poderes, auras y estadios.
  */
 public class GameWindow extends JFrame {
 
@@ -33,7 +34,7 @@ public class GameWindow extends JFrame {
 
     // Elementos de la barra de menú superior
     private JMenuItem itemNuevoBot, itemNuevoPvP, itemAbrir, itemSalvar, itemSalir, itemColor;
-    private JRadioButtonMenuItem itemDifFacil, itemDifNormal, itemDifDificil;
+    private JRadioButtonMenuItem itemBotTorpe, itemBotOfensiva, itemBotDefensiva, itemBotExperta;
 
     // Componentes del HUD
     private JPanel hudPanel;
@@ -50,14 +51,12 @@ public class GameWindow extends JFrame {
     private JProgressBar specialBarP1;
     private JProgressBar specialBarP2;
 
-    // Timers para el ciclo de físicas (~50 FPS) y cronómetro de 1 segundo
+    // Timers para físicas (~50 FPS) y reloj de 1 segundo
     private Timer gameTimer;
     private Timer clockTimer;
 
-    // Conjunto de teclas presionadas para movimiento fluido simultáneo de 1 o 2 jugadores
     private final Set<Integer> pressedKeys = new HashSet<>();
 
-    // Color del césped personalizado opcional (si es null, usa el color del estadio seleccionado)
     private Color customGrassColor = null;
 
     public GameWindow() {
@@ -68,12 +67,13 @@ public class GameWindow extends JFrame {
     }
 
     /**
-     * Inicializa los componentes visuales de la ventana.
+     * Inicializa los componentes visuales de la ventana permitiendo redimensionarla.
      */
     private void prepareElements() {
         setTitle("Head Soccer");
         setSize(920, 650);
-        setResizable(false);
+        setMinimumSize(new Dimension(740, 520));
+        setResizable(true);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
 
@@ -107,17 +107,20 @@ public class GameWindow extends JFrame {
         menuEdicion.add(itemColor);
         menuEdicion.addSeparator();
 
-        JMenu menuDificultad = new JMenu("Dificultad IA");
+        JMenu menuDificultad = new JMenu("Comportamiento Bot IA");
         ButtonGroup bgDif = new ButtonGroup();
-        itemDifFacil = new JRadioButtonMenuItem("Fácil");
-        itemDifNormal = new JRadioButtonMenuItem("Normal", true);
-        itemDifDificil = new JRadioButtonMenuItem("Difícil");
-        bgDif.add(itemDifFacil);
-        bgDif.add(itemDifNormal);
-        bgDif.add(itemDifDificil);
-        menuDificultad.add(itemDifFacil);
-        menuDificultad.add(itemDifNormal);
-        menuDificultad.add(itemDifDificil);
+        itemBotTorpe = new JRadioButtonMenuItem("Torpe");
+        itemBotOfensiva = new JRadioButtonMenuItem("Ofensiva", true);
+        itemBotDefensiva = new JRadioButtonMenuItem("Defensiva");
+        itemBotExperta = new JRadioButtonMenuItem("Experta");
+        bgDif.add(itemBotTorpe);
+        bgDif.add(itemBotOfensiva);
+        bgDif.add(itemBotDefensiva);
+        bgDif.add(itemBotExperta);
+        menuDificultad.add(itemBotTorpe);
+        menuDificultad.add(itemBotOfensiva);
+        menuDificultad.add(itemBotDefensiva);
+        menuDificultad.add(itemBotExperta);
         menuEdicion.add(menuDificultad);
 
         menuBar.add(menuArchivo);
@@ -130,7 +133,6 @@ public class GameWindow extends JFrame {
         hudPanel.setBackground(new Color(20, 25, 40));
         hudPanel.setBorder(new EmptyBorder(8, 20, 8, 20));
 
-        // Panel Jugador 1
         JPanel p1Box = new JPanel(new GridLayout(2, 1, 0, 4));
         p1Box.setOpaque(false);
         lblP1 = new JLabel("JUGADOR 1 [COL] (FireStrike)", JLabel.LEFT);
@@ -142,7 +144,6 @@ public class GameWindow extends JFrame {
         p1Box.add(lblP1);
         p1Box.add(specialBarP1);
 
-        // Panel Central (Marcador, Reloj, Estado y Dificultad/Modo/Estadio)
         JPanel centerBox = new JPanel(new GridLayout(2, 1));
         centerBox.setOpaque(false);
         scoreLabel = new JLabel("0  -  0", JLabel.CENTER);
@@ -157,7 +158,7 @@ public class GameWindow extends JFrame {
         stateLabel = new JLabel("[ MENÚ ]");
         stateLabel.setForeground(new Color(100, 200, 255));
         stateLabel.setFont(new Font("Arial", Font.BOLD, 12));
-        difficultyLabel = new JLabel("(Normal)");
+        difficultyLabel = new JLabel("(Ofensiva)");
         difficultyLabel.setForeground(new Color(180, 200, 220));
         difficultyLabel.setFont(new Font("Arial", Font.PLAIN, 11));
 
@@ -168,7 +169,6 @@ public class GameWindow extends JFrame {
         centerBox.add(scoreLabel);
         centerBox.add(subCenter);
 
-        // Panel Jugador 2 / Bot AI
         JPanel p2Box = new JPanel(new GridLayout(2, 1, 0, 4));
         p2Box.setOpaque(false);
         lblP2 = new JLabel("BOT AI [GER] (Teleport)", JLabel.RIGHT);
@@ -212,7 +212,11 @@ public class GameWindow extends JFrame {
 
     private void refresh() {
         scoreLabel.setText(match.getScorePlayer1() + "  -  " + match.getScorePlayer2());
-        timerLabel.setText("Tiempo: " + match.getTimeRemaining() + "s");
+        if (match.isGoalLimitMode()) {
+            timerLabel.setText("Meta: " + match.getGoalLimit() + " Goles (" + match.getElapsedTime() + "s)");
+        } else {
+            timerLabel.setText("Tiempo: " + match.getTimeRemaining() + "s");
+        }
 
         boolean enMenu = MatchManager.STATE_MENU.equals(match.getMatchState());
         boolean terminado = MatchManager.STATE_FINISHED.equals(match.getMatchState());
@@ -234,12 +238,14 @@ public class GameWindow extends JFrame {
         }
 
         int dif = match.getDifficultyLevel();
-        if (dif == BotAI.DIFFICULTY_EASY) {
-            itemDifFacil.setSelected(true);
-        } else if (dif == BotAI.DIFFICULTY_HARD) {
-            itemDifDificil.setSelected(true);
+        if (dif == BotAI.LEVEL_TORPE) {
+            itemBotTorpe.setSelected(true);
+        } else if (dif == BotAI.LEVEL_DEFENSIVA) {
+            itemBotDefensiva.setSelected(true);
+        } else if (dif == BotAI.LEVEL_EXPERTA) {
+            itemBotExperta.setSelected(true);
         } else {
-            itemDifNormal.setSelected(true);
+            itemBotOfensiva.setSelected(true);
         }
 
         Character p1 = match.getPlayer1();
@@ -263,8 +269,8 @@ public class GameWindow extends JFrame {
                 "J2: [←/→] Mover [↑] Saltar [ENTER/↓] Patear [M/SHIFT] Poder   ||   [ESC] Pausa"
             );
         } else {
-            String difTxt = (dif == BotAI.DIFFICULTY_EASY) ? "Fácil" : (dif == BotAI.DIFFICULTY_HARD ? "Difícil" : "Normal");
-            difficultyLabel.setText("(Bot " + difTxt + " | " + stadName + ")");
+            String botStrat = match.getBotStrategyName();
+            difficultyLabel.setText("(Bot " + botStrat + " | " + stadName + ")");
             lblP2.setText("BOT AI [" + p2TeamCode + "] (" + p2AbName + ")");
             infoLabel.setText(
                 "[A / D] o [← / →] Mover  |  [W / ↑] Saltar  |  [ESPACIO] Patear  |  [E] Poder Especial  |  [ESC] Menú de Pausa"
@@ -274,7 +280,6 @@ public class GameWindow extends JFrame {
             specialBarP2.setForeground(p2.getSpecialAbility().getAuraColor());
         }
 
-        // Barra Jugador 1
         int sp1 = p1.getSpecialMeter();
         specialBarP1.setValue(sp1);
         boolean p1Ready = p1.getSpecialAbility() != null && p1.getSpecialAbility().isReady();
@@ -288,7 +293,6 @@ public class GameWindow extends JFrame {
             specialBarP1.setString("Poder: " + sp1 + "%");
         }
 
-        // Barra Jugador 2 / Bot AI
         int sp2 = p2.getSpecialMeter();
         specialBarP2.setValue(sp2);
         boolean p2Ready = p2.getSpecialAbility() != null && p2.getSpecialAbility().isReady();
@@ -365,32 +369,36 @@ public class GameWindow extends JFrame {
             }
         });
 
-        itemDifFacil.addActionListener(new ActionListener() {
+        itemBotTorpe.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                match.setDifficultyLevel(BotAI.DIFFICULTY_EASY);
+                match.setDifficultyLevel(BotAI.LEVEL_TORPE);
                 refresh();
             }
         });
-        itemDifNormal.addActionListener(new ActionListener() {
+        itemBotOfensiva.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                match.setDifficultyLevel(BotAI.DIFFICULTY_NORMAL);
+                match.setDifficultyLevel(BotAI.LEVEL_OFENSIVA);
                 refresh();
             }
         });
-        itemDifDificil.addActionListener(new ActionListener() {
+        itemBotDefensiva.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                match.setDifficultyLevel(BotAI.DIFFICULTY_HARD);
+                match.setDifficultyLevel(BotAI.LEVEL_DEFENSIVA);
+                refresh();
+            }
+        });
+        itemBotExperta.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                match.setDifficultyLevel(BotAI.LEVEL_EXPERTA);
                 refresh();
             }
         });
     }
 
-    /**
-     * Sincroniza el movimiento horizontal de Jugador 1 y Jugador 2 según las teclas mantenidas.
-     */
     private void actualizarMovimientoContinuo() {
         if (!MatchManager.STATE_PLAYING.equals(match.getMatchState())) {
             return;
@@ -399,7 +407,6 @@ public class GameWindow extends JFrame {
         boolean dosJugadores = match.isTwoPlayerMode();
 
         if (dosJugadores) {
-            // Jugador 1: A / D
             boolean p1Left = pressedKeys.contains(KeyEvent.VK_A);
             boolean p1Right = pressedKeys.contains(KeyEvent.VK_D);
             if (p1Left && !p1Right) {
@@ -410,7 +417,6 @@ public class GameWindow extends JFrame {
                 match.getPlayer1().handleInput("STOP", match.getBall());
             }
 
-            // Jugador 2: Flecha Izquierda / Flecha Derecha
             boolean p2Left = pressedKeys.contains(KeyEvent.VK_LEFT);
             boolean p2Right = pressedKeys.contains(KeyEvent.VK_RIGHT);
             try {
@@ -422,15 +428,11 @@ public class GameWindow extends JFrame {
                     match.handlePlayer2Input("STOP");
                 }
             } catch (HeadSoccerException ex) {
-                // Ignorar si no es modo 2 jugadores
+                // Ignorar en modo contra Bot
             }
         } else {
-            // Modo 1 Jugador vs Bot: acepta tanto A/D como Flechas Izquierda/Derecha
             boolean p1Left = pressedKeys.contains(KeyEvent.VK_A) || pressedKeys.contains(KeyEvent.VK_LEFT);
             boolean p1Right = pressedKeys.contains(KeyEvent.VK_D) || pressedKeys.contains(KeyEvent.VK_RIGHT);
-            if (p1Left && !p1Left) {
-                match.getPlayer1().handleInput("STOP", match.getBall());
-            }
             if (p1Left && !p1Right) {
                 match.getPlayer1().handleInput("LEFT", match.getBall());
             } else if (p1Right && !p1Left) {
@@ -448,7 +450,6 @@ public class GameWindow extends JFrame {
                 int code = e.getKeyCode();
                 pressedKeys.add(code);
 
-                // Si estamos en el menú principal, atajos 1, 2 y 3
                 if (MatchManager.STATE_MENU.equals(match.getMatchState())) {
                     if (code == KeyEvent.VK_1) iniciarModoJuego(MatchManager.MODE_PVE);
                     else if (code == KeyEvent.VK_2) iniciarModoJuego(MatchManager.MODE_PVP);
@@ -456,7 +457,6 @@ public class GameWindow extends JFrame {
                     return;
                 }
 
-                // Tecla ESC para pausar o reanudar durante un partido
                 if (code == KeyEvent.VK_ESCAPE) {
                     if (MatchManager.STATE_PLAYING.equals(match.getMatchState())) {
                         pressedKeys.clear();
@@ -470,7 +470,6 @@ public class GameWindow extends JFrame {
                     return;
                 }
 
-                // Si el partido está pausado o finalizado, procesar atajos de menú
                 if (!MatchManager.STATE_PLAYING.equals(match.getMatchState())) {
                     if (MatchManager.STATE_PAUSED.equals(match.getMatchState())) {
                         if (code == KeyEvent.VK_1) match.resume();
@@ -489,7 +488,6 @@ public class GameWindow extends JFrame {
                 boolean dosJugadores = match.isTwoPlayerMode();
 
                 if (dosJugadores) {
-                    // Acciones instantáneas Jugador 1 (W, ESPACIO/S, E)
                     if (code == KeyEvent.VK_W) {
                         match.getPlayer1().handleInput("JUMP", match.getBall());
                     } else if (code == KeyEvent.VK_SPACE || code == KeyEvent.VK_S) {
@@ -498,7 +496,6 @@ public class GameWindow extends JFrame {
                         match.getPlayer1().handleInput("SPECIAL", match.getBall());
                     }
 
-                    // Acciones instantáneas Jugador 2 (Flecha Arriba, ENTER/Flecha Abajo/L, M/SHIFT)
                     try {
                         if (code == KeyEvent.VK_UP) {
                             match.handlePlayer2Input("JUMP");
@@ -511,7 +508,6 @@ public class GameWindow extends JFrame {
                         // Controlado por dominio
                     }
                 } else {
-                    // Modo 1 Jugador vs Bot
                     if (code == KeyEvent.VK_W || code == KeyEvent.VK_UP) {
                         match.getPlayer1().handleInput("JUMP", match.getBall());
                     } else if (code == KeyEvent.VK_SPACE || code == KeyEvent.VK_S) {
@@ -535,7 +531,6 @@ public class GameWindow extends JFrame {
         boardPanel.addKeyListener(keyHandler);
         this.addKeyListener(keyHandler);
 
-        // Timer de físicas a 50 FPS (cada 20 ms)
         gameTimer = new Timer(20, new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -546,7 +541,6 @@ public class GameWindow extends JFrame {
         });
         gameTimer.start();
 
-        // Timer del reloj (cada 1000 ms)
         clockTimer = new Timer(1000, new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -557,11 +551,6 @@ public class GameWindow extends JFrame {
         clockTimer.start();
     }
 
-    /**
-     * Inicia un nuevo partido en el modo indicado (MODE_PVE contra el Bot o MODE_PVP para 2 jugadores),
-     * aplicando los poderes, equipos, colores de camiseta y estadio elegidos en el menú de inicio.
-     * @param modo Modo de juego a iniciar.
-     */
     public void iniciarModoJuego(String modo) {
         pressedKeys.clear();
         int dif = match.getDifficultyLevel();
@@ -583,9 +572,6 @@ public class GameWindow extends JFrame {
         refresh();
     }
 
-    /**
-     * Devuelve al jugador al menú principal de selección de tipo de partida sin cerrar la ventana.
-     */
     public void volverAlMenuPrincipal() {
         pressedKeys.clear();
         match.returnToMenu();
@@ -694,8 +680,147 @@ public class GameWindow extends JFrame {
     }
 
     /**
-     * Cierra la ventana únicamente cuando el usuario pulsa el botón X de la ventana del sistema.
+     * Abre una ventana sencilla para consultar y mejorar las estadísticas del jugador (1 a 10)
+     * o reiniciar sus puntos de mejora.
      */
+    private void abrirVentanaEstadisticas(final boolean esJugador1) {
+        final PlayerStats stats = esJugador1 ? match.getPlayer1Stats() : match.getPlayer2Stats();
+        String nombre = esJugador1 ? "Jugador 1" : "Jugador 2 / Bot";
+
+        final JDialog dialog = new JDialog(this, "Estadísticas y Mejoras - " + nombre, true);
+        dialog.setSize(420, 310);
+        dialog.setLocationRelativeTo(this);
+        dialog.setLayout(new BorderLayout(10, 10));
+
+        final JLabel lblPuntos = new JLabel("Puntos disponibles para mejorar: " + stats.getAvailablePoints(), JLabel.CENTER);
+        lblPuntos.setFont(new Font("Arial", Font.BOLD, 14));
+        lblPuntos.setBorder(new EmptyBorder(10, 10, 0, 10));
+        dialog.add(lblPuntos, BorderLayout.NORTH);
+
+        JPanel centerPanel = new JPanel(new GridLayout(4, 3, 8, 10));
+        centerPanel.setBorder(new EmptyBorder(10, 16, 10, 16));
+
+        final JLabel lblVel = new JLabel();
+        final JLabel lblSal = new JLabel();
+        final JLabel lblPat = new JLabel();
+        final JLabel lblPod = new JLabel();
+
+        final JProgressBar barVel = new JProgressBar(PlayerStats.MIN_STAT, PlayerStats.MAX_STAT);
+        final JProgressBar barSal = new JProgressBar(PlayerStats.MIN_STAT, PlayerStats.MAX_STAT);
+        final JProgressBar barPat = new JProgressBar(PlayerStats.MIN_STAT, PlayerStats.MAX_STAT);
+        final JProgressBar barPod = new JProgressBar(PlayerStats.MIN_STAT, PlayerStats.MAX_STAT);
+
+        final JButton btnMasVel = new JButton("+ Mejorar");
+        final JButton btnMasSal = new JButton("+ Mejorar");
+        final JButton btnMasPat = new JButton("+ Mejorar");
+        final JButton btnMasPod = new JButton("+ Mejorar");
+
+        final Runnable actualizarVista = new Runnable() {
+            @Override
+            public void run() {
+                lblPuntos.setText("Puntos disponibles para mejorar: " + stats.getAvailablePoints());
+                lblVel.setText("Velocidad: " + stats.getSpeed() + " / 10");
+                lblSal.setText("Salto: " + stats.getJump() + " / 10");
+                lblPat.setText("Patada: " + stats.getKick() + " / 10");
+                lblPod.setText("Poder: " + stats.getPower() + " / 10");
+
+                barVel.setValue(stats.getSpeed());
+                barSal.setValue(stats.getJump());
+                barPat.setValue(stats.getKick());
+                barPod.setValue(stats.getPower());
+
+                boolean hayPuntos = stats.getAvailablePoints() > 0;
+                btnMasVel.setEnabled(hayPuntos && stats.getSpeed() < PlayerStats.MAX_STAT);
+                btnMasSal.setEnabled(hayPuntos && stats.getJump() < PlayerStats.MAX_STAT);
+                btnMasPat.setEnabled(hayPuntos && stats.getKick() < PlayerStats.MAX_STAT);
+                btnMasPod.setEnabled(hayPuntos && stats.getPower() < PlayerStats.MAX_STAT);
+                refresh();
+            }
+        };
+
+        btnMasVel.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    if (esJugador1) match.upgradePlayer1Stat(PlayerStats.STAT_SPEED);
+                    else match.upgradePlayer2Stat(PlayerStats.STAT_SPEED);
+                    actualizarVista.run();
+                } catch (HeadSoccerException ex) {
+                    JOptionPane.showMessageDialog(dialog, ex.getMessage());
+                }
+            }
+        });
+        btnMasSal.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    if (esJugador1) match.upgradePlayer1Stat(PlayerStats.STAT_JUMP);
+                    else match.upgradePlayer2Stat(PlayerStats.STAT_JUMP);
+                    actualizarVista.run();
+                } catch (HeadSoccerException ex) {
+                    JOptionPane.showMessageDialog(dialog, ex.getMessage());
+                }
+            }
+        });
+        btnMasPat.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    if (esJugador1) match.upgradePlayer1Stat(PlayerStats.STAT_KICK);
+                    else match.upgradePlayer2Stat(PlayerStats.STAT_KICK);
+                    actualizarVista.run();
+                } catch (HeadSoccerException ex) {
+                    JOptionPane.showMessageDialog(dialog, ex.getMessage());
+                }
+            }
+        });
+        btnMasPod.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    if (esJugador1) match.upgradePlayer1Stat(PlayerStats.STAT_POWER);
+                    else match.upgradePlayer2Stat(PlayerStats.STAT_POWER);
+                    actualizarVista.run();
+                } catch (HeadSoccerException ex) {
+                    JOptionPane.showMessageDialog(dialog, ex.getMessage());
+                }
+            }
+        });
+
+        centerPanel.add(lblVel); centerPanel.add(barVel); centerPanel.add(btnMasVel);
+        centerPanel.add(lblSal); centerPanel.add(barSal); centerPanel.add(btnMasSal);
+        centerPanel.add(lblPat); centerPanel.add(barPat); centerPanel.add(btnMasPat);
+        centerPanel.add(lblPod); centerPanel.add(barPod); centerPanel.add(btnMasPod);
+        dialog.add(centerPanel, BorderLayout.CENTER);
+
+        JPanel southPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 12, 8));
+        JButton btnReiniciar = new JButton("Reiniciar Puntos");
+        JButton btnCerrar = new JButton("Aceptar");
+
+        btnReiniciar.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (esJugador1) match.resetPlayer1Stats();
+                else match.resetPlayer2Stats();
+                actualizarVista.run();
+            }
+        });
+        btnCerrar.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                dialog.dispose();
+            }
+        });
+
+        southPanel.add(btnReiniciar);
+        southPanel.add(btnCerrar);
+        dialog.add(southPanel, BorderLayout.SOUTH);
+
+        actualizarVista.run();
+        dialog.setVisible(true);
+        boardPanel.requestFocusInWindow();
+    }
+
     private void cerrarAplicacion() {
         int respuesta = JOptionPane.showConfirmDialog(
             this,
@@ -711,91 +836,94 @@ public class GameWindow extends JFrame {
         }
     }
 
-    /**
-     * Cuando se elige Salir desde los menús del juego, regresa al menú principal de selección de partida
-     * sin cerrar la ventana.
-     */
     public void salir() {
         volverAlMenuPrincipal();
     }
 
     /**
-     * Lienzo interactivo donde se dibujan el estadio seleccionado, arcos, personajes con su equipo,
-     * camiseta y aura de poder, balón, menú de inicio con personalización, pausa y resultados.
+     * Lienzo interactivo que escala automáticamente todo el campo y los menús
+     * cuando la ventana se maximiza o se reduce.
      */
     private class FieldCanvas extends JPanel {
+        private static final int BASE_WIDTH = 900;
+        private static final int BASE_HEIGHT = 510;
+
         // Columna Central: Botones principales de modo de juego
-        private final Rectangle btnModeBotRect = new Rectangle(327, 112, 246, 44);
-        private final Rectangle btnModePvPRect = new Rectangle(327, 166, 246, 44);
-        private final Rectangle btnModeLoadRect = new Rectangle(327, 220, 246, 38);
+        private final Rectangle btnModeBotRect = new Rectangle(327, 94, 246, 36);
+        private final Rectangle btnModePvPRect = new Rectangle(327, 135, 246, 36);
+        private final Rectangle btnModeLoadRect = new Rectangle(327, 176, 246, 32);
 
-        // Columna Central: Selector de dificultad del Bot
-        private final Rectangle btnDifEasyRect = new Rectangle(327, 298, 78, 32);
-        private final Rectangle btnDifNormalRect = new Rectangle(411, 298, 78, 32);
-        private final Rectangle btnDifHardRect = new Rectangle(495, 298, 78, 32);
+        // Columna Central: Estrategias del Bot (Torpe, Ofensiva, Defensiva, Experta)
+        private final Rectangle btnBotTorpeRect = new Rectangle(325, 232, 120, 25);
+        private final Rectangle btnBotOfensivaRect = new Rectangle(453, 232, 120, 25);
+        private final Rectangle btnBotDefensivaRect = new Rectangle(325, 261, 120, 25);
+        private final Rectangle btnBotExpertaRect = new Rectangle(453, 261, 120, 25);
 
-        // Columna Izquierda (Jugador 1): Selección de Equipo
-        private final Rectangle p1TeamColRect = new Rectangle(58, 132, 74, 28);
-        private final Rectangle p1TeamGerRect = new Rectangle(136, 132, 74, 28);
-        private final Rectangle p1TeamUsaRect = new Rectangle(214, 132, 74, 28);
+        // Columna Central: Tipo de Partido (Por Tiempo o Por Goles) y ajuste maleable
+        private final Rectangle btnRuleTimeRect = new Rectangle(325, 306, 120, 24);
+        private final Rectangle btnRuleGoalsRect = new Rectangle(453, 306, 120, 24);
+        private final Rectangle btnValueMinusRect = new Rectangle(335, 334, 42, 24);
+        private final Rectangle btnValuePlusRect = new Rectangle(523, 334, 42, 24);
 
-        // Columna Izquierda (Jugador 1): Muestras rápidas de color de camiseta y selector libre
+        // Columna Izquierda (Jugador 1): Equipo, Camiseta, Poder y Estadísticas
+        private final Rectangle p1TeamColRect = new Rectangle(58, 122, 74, 25);
+        private final Rectangle p1TeamGerRect = new Rectangle(136, 122, 74, 25);
+        private final Rectangle p1TeamUsaRect = new Rectangle(214, 122, 74, 25);
+
         private final Rectangle[] p1ColorSwatches = new Rectangle[] {
-            new Rectangle(58, 185, 25, 24),
-            new Rectangle(87, 185, 25, 24),
-            new Rectangle(116, 185, 25, 24),
-            new Rectangle(145, 185, 25, 24),
-            new Rectangle(174, 185, 25, 24)
+            new Rectangle(58, 168, 25, 22),
+            new Rectangle(87, 168, 25, 22),
+            new Rectangle(116, 168, 25, 22),
+            new Rectangle(145, 168, 25, 22),
+            new Rectangle(174, 168, 25, 22)
         };
-        private final Rectangle p1CustomColorRect = new Rectangle(205, 185, 83, 24);
+        private final Rectangle p1CustomColorRect = new Rectangle(205, 168, 83, 22);
 
-        // Columna Izquierda (Jugador 1): Selección de Poder Especial
-        private final Rectangle p1AbFireRect = new Rectangle(58, 235, 230, 32);
-        private final Rectangle p1AbGiantRect = new Rectangle(58, 273, 230, 32);
-        private final Rectangle p1AbTeleRect = new Rectangle(58, 311, 230, 32);
+        private final Rectangle p1AbFireRect = new Rectangle(58, 210, 230, 27);
+        private final Rectangle p1AbGiantRect = new Rectangle(58, 241, 230, 27);
+        private final Rectangle p1AbTeleRect = new Rectangle(58, 272, 230, 27);
+        private final Rectangle p1StatsBtnRect = new Rectangle(58, 326, 230, 28);
 
-        // Columna Derecha (Jugador 2 / Bot AI): Selección de Equipo
-        private final Rectangle p2TeamColRect = new Rectangle(612, 132, 74, 28);
-        private final Rectangle p2TeamGerRect = new Rectangle(690, 132, 74, 28);
-        private final Rectangle p2TeamUsaRect = new Rectangle(768, 132, 74, 28);
+        // Columna Derecha (Jugador 2 / Bot AI): Equipo, Camiseta, Poder y Estadísticas
+        private final Rectangle p2TeamColRect = new Rectangle(612, 122, 74, 25);
+        private final Rectangle p2TeamGerRect = new Rectangle(690, 122, 74, 25);
+        private final Rectangle p2TeamUsaRect = new Rectangle(768, 122, 74, 25);
 
-        // Columna Derecha (Jugador 2 / Bot AI): Muestras rápidas de color de camiseta y selector libre
         private final Rectangle[] p2ColorSwatches = new Rectangle[] {
-            new Rectangle(612, 185, 25, 24),
-            new Rectangle(641, 185, 25, 24),
-            new Rectangle(670, 185, 25, 24),
-            new Rectangle(699, 185, 25, 24),
-            new Rectangle(728, 185, 25, 24)
+            new Rectangle(612, 168, 25, 22),
+            new Rectangle(641, 168, 25, 22),
+            new Rectangle(670, 168, 25, 22),
+            new Rectangle(699, 168, 25, 22),
+            new Rectangle(728, 168, 25, 22)
         };
-        private final Rectangle p2CustomColorRect = new Rectangle(759, 185, 83, 24);
+        private final Rectangle p2CustomColorRect = new Rectangle(759, 168, 83, 22);
 
-        // Columna Derecha (Jugador 2 / Bot AI): Selección de Poder Especial
-        private final Rectangle p2AbFireRect = new Rectangle(612, 235, 230, 32);
-        private final Rectangle p2AbGiantRect = new Rectangle(612, 273, 230, 32);
-        private final Rectangle p2AbTeleRect = new Rectangle(612, 311, 230, 32);
+        private final Rectangle p2AbFireRect = new Rectangle(612, 210, 230, 27);
+        private final Rectangle p2AbGiantRect = new Rectangle(612, 241, 230, 27);
+        private final Rectangle p2AbTeleRect = new Rectangle(612, 272, 230, 27);
+        private final Rectangle p2StatsBtnRect = new Rectangle(612, 326, 230, 28);
 
         // Fila Inferior: Selección de Estadio
         private final Rectangle btnStadMetroRect = new Rectangle(65, 405, 240, 60);
         private final Rectangle btnStadAllianzRect = new Rectangle(330, 405, 240, 60);
         private final Rectangle btnStadRoseRect = new Rectangle(595, 405, 240, 60);
 
-        // Paleta rápida de colores de camiseta
         private final Color[] presetShirtColors = new Color[] {
-            new Color(255, 205, 0),   // Amarillo Colombia
-            new Color(240, 240, 240), // Blanco Alemania
-            new Color(20, 45, 115),   // Azul Marino USA
-            new Color(220, 35, 45),   // Rojo Intenso
-            new Color(30, 180, 85)    // Verde Deportivo
+            new Color(255, 205, 0),
+            new Color(240, 240, 240),
+            new Color(20, 45, 115),
+            new Color(220, 35, 45),
+            new Color(30, 180, 85)
         };
 
-        // Coordenadas de botones del menú de pausa
+        // Botones del menú de pausa
         private final Rectangle btnResumeRect = new Rectangle(330, 175, 240, 42);
         private final Rectangle btnSaveRect = new Rectangle(330, 230, 240, 42);
         private final Rectangle btnLoadRect = new Rectangle(330, 285, 240, 42);
         private final Rectangle btnRestartRect = new Rectangle(330, 340, 240, 42);
         private final Rectangle btnExitRect = new Rectangle(330, 395, 240, 42);
 
-        // Coordenadas de botones de la pantalla de fin de partido
+        // Botones de fin de partido
         private final Rectangle btnPlayAgainRect = new Rectangle(255, 340, 185, 46);
         private final Rectangle btnQuitRect = new Rectangle(460, 340, 195, 46);
 
@@ -805,13 +933,13 @@ public class GameWindow extends JFrame {
             MouseAdapter mouseHandler = new MouseAdapter() {
                 @Override
                 public void mouseMoved(MouseEvent e) {
-                    mousePos = e.getPoint();
+                    mousePos = toLogicalPoint(e.getPoint());
                     repaint();
                 }
 
                 @Override
                 public void mouseClicked(MouseEvent e) {
-                    Point p = e.getPoint();
+                    Point p = toLogicalPoint(e.getPoint());
 
                     if (MatchManager.STATE_MENU.equals(match.getMatchState())) {
                         handleMainMenuClick(p);
@@ -841,9 +969,20 @@ public class GameWindow extends JFrame {
             addMouseMotionListener(mouseHandler);
         }
 
+        /**
+         * Convierte las coordenadas reales del ratón a coordenadas lógicas (900x510)
+         * para que todos los botones funcionen al maximizar o reducir la ventana.
+         */
+        private Point toLogicalPoint(Point raw) {
+            int cw = Math.max(1, getWidth());
+            int ch = Math.max(1, getHeight());
+            int lx = (int) (raw.x * (BASE_WIDTH / (double) cw));
+            int ly = (int) (raw.y * (BASE_HEIGHT / (double) ch));
+            return new Point(lx, ly);
+        }
+
         private void handleMainMenuClick(Point p) {
             try {
-                // 1. Botones de inicio de modo y carga
                 if (btnModeBotRect.contains(p)) {
                     iniciarModoJuego(MatchManager.MODE_PVE);
                     return;
@@ -855,16 +994,37 @@ public class GameWindow extends JFrame {
                     return;
                 }
 
-                // 2. Dificultad del Bot
-                if (btnDifEasyRect.contains(p)) {
-                    match.setDifficultyLevel(BotAI.DIFFICULTY_EASY);
-                } else if (btnDifNormalRect.contains(p)) {
-                    match.setDifficultyLevel(BotAI.DIFFICULTY_NORMAL);
-                } else if (btnDifHardRect.contains(p)) {
-                    match.setDifficultyLevel(BotAI.DIFFICULTY_HARD);
+                // Estrategias del Bot (Torpe, Ofensiva, Defensiva, Experta)
+                if (btnBotTorpeRect.contains(p)) {
+                    match.setBotStrategy(BotStrategy.STRATEGY_TORPE);
+                } else if (btnBotOfensivaRect.contains(p)) {
+                    match.setBotStrategy(BotStrategy.STRATEGY_OFENSIVA);
+                } else if (btnBotDefensivaRect.contains(p)) {
+                    match.setBotStrategy(BotStrategy.STRATEGY_DEFENSIVA);
+                } else if (btnBotExpertaRect.contains(p)) {
+                    match.setBotStrategy(BotStrategy.STRATEGY_EXPERTA);
                 }
 
-                // 3. Equipos Jugador 1
+                // Tipo de partido (Por Tiempo o Por Goles) y botones - / +
+                if (btnRuleTimeRect.contains(p)) {
+                    match.setMatchRule(MatchManager.RULE_TIME);
+                } else if (btnRuleGoalsRect.contains(p)) {
+                    match.setMatchRule(MatchManager.RULE_GOALS);
+                } else if (btnValueMinusRect.contains(p)) {
+                    if (match.isGoalLimitMode()) {
+                        match.setGoalLimit(Math.max(1, match.getGoalLimit() - 1));
+                    } else {
+                        match.setConfiguredDuration(Math.max(15, match.getConfiguredDuration() - 15));
+                    }
+                } else if (btnValuePlusRect.contains(p)) {
+                    if (match.isGoalLimitMode()) {
+                        match.setGoalLimit(Math.min(25, match.getGoalLimit() + 1));
+                    } else {
+                        match.setConfiguredDuration(Math.min(300, match.getConfiguredDuration() + 15));
+                    }
+                }
+
+                // Jugador 1: Equipo, color, poder y mejoras de estadísticas
                 if (p1TeamColRect.contains(p)) {
                     match.setPlayer1Team(Team.TEAM_COLOMBIA);
                 } else if (p1TeamGerRect.contains(p)) {
@@ -873,7 +1033,6 @@ public class GameWindow extends JFrame {
                     match.setPlayer1Team(Team.TEAM_USA);
                 }
 
-                // 4. Color de camiseta Jugador 1
                 for (int i = 0; i < p1ColorSwatches.length; i++) {
                     if (p1ColorSwatches[i].contains(p)) {
                         match.setPlayer1ShirtColor(presetShirtColors[i]);
@@ -884,16 +1043,18 @@ public class GameWindow extends JFrame {
                     return;
                 }
 
-                // 5. Poder Especial Jugador 1
                 if (p1AbFireRect.contains(p)) {
                     match.setPlayer1Ability(Ability.ABILITY_FIRE_STRIKE);
                 } else if (p1AbGiantRect.contains(p)) {
                     match.setPlayer1Ability(Ability.ABILITY_GIANT_KICK);
                 } else if (p1AbTeleRect.contains(p)) {
                     match.setPlayer1Ability(Ability.ABILITY_TELEPORT);
+                } else if (p1StatsBtnRect.contains(p)) {
+                    abrirVentanaEstadisticas(true);
+                    return;
                 }
 
-                // 6. Equipos Jugador 2 / Bot
+                // Jugador 2 / Bot: Equipo, color, poder y mejoras de estadísticas
                 if (p2TeamColRect.contains(p)) {
                     match.setPlayer2Team(Team.TEAM_COLOMBIA);
                 } else if (p2TeamGerRect.contains(p)) {
@@ -902,7 +1063,6 @@ public class GameWindow extends JFrame {
                     match.setPlayer2Team(Team.TEAM_USA);
                 }
 
-                // 7. Color de camiseta Jugador 2 / Bot
                 for (int i = 0; i < p2ColorSwatches.length; i++) {
                     if (p2ColorSwatches[i].contains(p)) {
                         match.setPlayer2ShirtColor(presetShirtColors[i]);
@@ -913,16 +1073,18 @@ public class GameWindow extends JFrame {
                     return;
                 }
 
-                // 8. Poder Especial Jugador 2 / Bot (funciona tanto para PVP como para el Bot en PVE)
                 if (p2AbFireRect.contains(p)) {
                     match.setPlayer2Ability(Ability.ABILITY_FIRE_STRIKE);
                 } else if (p2AbGiantRect.contains(p)) {
                     match.setPlayer2Ability(Ability.ABILITY_GIANT_KICK);
                 } else if (p2AbTeleRect.contains(p)) {
                     match.setPlayer2Ability(Ability.ABILITY_TELEPORT);
+                } else if (p2StatsBtnRect.contains(p)) {
+                    abrirVentanaEstadisticas(false);
+                    return;
                 }
 
-                // 9. Selección de Estadio
+                // Selección de Estadio
                 if (btnStadMetroRect.contains(p)) {
                     match.setStadium(Stadium.STADIUM_METROPOLITANO);
                     customGrassColor = null;
@@ -943,25 +1105,28 @@ public class GameWindow extends JFrame {
         @Override
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
-            Graphics2D g2 = (Graphics2D) g;
+            Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-            int w = getWidth();
-            int h = getHeight();
+            // Escalar proporcionalmente todo el lienzo al tamaño actual de la ventana
+            double scaleX = getWidth() / (double) BASE_WIDTH;
+            double scaleY = getHeight() / (double) BASE_HEIGHT;
+            g2.scale(scaleX, scaleY);
+
+            int w = BASE_WIDTH;
+            int h = BASE_HEIGHT;
             int groundY = (int) Ball.GROUND_Y;
             Stadium stadium = match.getStadium();
 
-            // 1. Cielo temático del estadio seleccionado
+            // 1. Cielo del estadio
             GradientPaint sky = new GradientPaint(0, 0, stadium.getSkyTopColor(), 0, groundY, stadium.getSkyBottomColor());
             g2.setPaint(sky);
             g2.fillRect(0, 0, w, groundY);
 
-            // Reflectores del estadio
             g2.setColor(new Color(255, 255, 220, 45));
             g2.fillPolygon(new int[]{80, 0, 260}, new int[]{0, groundY - 110, groundY - 110}, 3);
             g2.fillPolygon(new int[]{w - 80, w - 260, w}, new int[]{0, groundY - 110, groundY - 110}, 3);
 
-            // Gradas con público de los colores del estadio
             g2.setColor(stadium.getStandsColor());
             g2.fillRect(0, groundY - 110, w, 110);
             for (int row = 0; row < 4; row++) {
@@ -971,7 +1136,6 @@ public class GameWindow extends JFrame {
                 }
             }
 
-            // Valla publicitaria con el nombre del estadio
             g2.setColor(stadium.getBannerColor());
             g2.fillRect(0, groundY - 24, w, 24);
             g2.setColor(Color.WHITE);
@@ -980,7 +1144,7 @@ public class GameWindow extends JFrame {
             FontMetrics fmBanner = g2.getFontMetrics();
             g2.drawString(banner, (w - fmBanner.stringWidth(banner)) / 2, groundY - 7);
 
-            // 2. Césped con franjas deportivas según estadio o color personalizado
+            // 2. Césped
             Color baseGrass = customGrassColor != null ? customGrassColor : stadium.getGrassColor();
             Color stripeBright = baseGrass.brighter();
             int stripeWidth = Math.max(1, w / 10);
@@ -989,79 +1153,72 @@ public class GameWindow extends JFrame {
                 g2.fillRect(i * stripeWidth, groundY, stripeWidth, h - groundY);
             }
 
-            // Líneas reglamentarias de la cancha
             g2.setColor(Color.WHITE);
             g2.setStroke(new BasicStroke(3));
             g2.drawLine(0, groundY, w, groundY);
             g2.drawLine(w / 2, groundY, w / 2, h);
             g2.drawOval(w / 2 - 50, groundY + 10, 100, 45);
 
-            // 3. Dibujar las Porterías
+            // 3. Porterías
             drawGoal(g2, match.getLeftGoal(), true);
             drawGoal(g2, match.getRightGoal(), false);
 
-            // 4. Dibujar Personajes (con su equipo, camiseta y aura de poder si está activa)
+            // 4. Personajes
             String p1Tag = "J1 [" + match.getPlayer1().getTeam().getCode() + "]";
             String p2Prefix = match.isTwoPlayerMode() ? "J2" : "BOT";
             String p2Tag = p2Prefix + " [" + match.getPlayer2().getTeam().getCode() + "]";
             drawCharacter(g2, match.getPlayer1(), p1Tag);
             drawCharacter(g2, match.getPlayer2(), p2Tag);
 
-            // 5. Dibujar Balón
+            // 5. Balón
             drawBall(g2, match.getBall(), groundY);
 
-            // 6. Overlay del Menú Principal (Personalización completa e inicio)
+            // 6. Overlays de estado
             if (MatchManager.STATE_MENU.equals(match.getMatchState())) {
                 drawMainMenu(g2, w, h);
             }
-
-            // 7. Overlay del Menú de Pausa (tecla ESC)
             if (MatchManager.STATE_PAUSED.equals(match.getMatchState())) {
                 drawPauseMenu(g2, w, h);
             }
-
-            // 8. Overlay de Fin de Partido (Resultados)
             if (MatchManager.STATE_FINISHED.equals(match.getMatchState())) {
                 drawResultsScreen(g2, w, h);
             }
+
+            g2.dispose();
         }
 
         private void drawMainMenu(Graphics2D g2, int w, int h) {
-            // Fondo translúcido
             g2.setColor(new Color(8, 12, 22, 220));
             g2.fillRect(0, 0, w, h);
 
-            // Marco principal
             g2.setColor(new Color(18, 26, 44));
             g2.fillRoundRect(30, 14, 840, 476, 22, 22);
             g2.setColor(new Color(255, 215, 0));
             g2.setStroke(new BasicStroke(2.5f));
             g2.drawRoundRect(30, 14, 840, 476, 22, 22);
 
-            // Título y subtítulo
             g2.setColor(new Color(255, 215, 0));
-            g2.setFont(new Font("Arial", Font.BOLD, 24));
+            g2.setFont(new Font("Arial", Font.BOLD, 22));
             String title = "HEAD SOCCER 2D  -  MENÚ DE INICIO";
             FontMetrics fmTitle = g2.getFontMetrics();
-            g2.drawString(title, (w - fmTitle.stringWidth(title)) / 2, 44);
+            g2.drawString(title, (w - fmTitle.stringWidth(title)) / 2, 42);
 
             g2.setColor(new Color(190, 210, 235));
             g2.setFont(new Font("Arial", Font.PLAIN, 12));
-            String sub = "Personaliza poderes, equipos, color de camiseta y estadio antes de comenzar (Teclas 1, 2 o 3)";
+            String sub = "Configura poderes, equipos, camisetas, mejoras (1-10), tipo de juego y estadio";
             FontMetrics fmSub = g2.getFontMetrics();
-            g2.drawString(sub, (w - fmSub.stringWidth(sub)) / 2, 64);
+            g2.drawString(sub, (w - fmSub.stringWidth(sub)) / 2, 61);
 
-            // =====================================================
-            // COLUMNA IZQUIERDA: CONFIGURACIÓN JUGADOR 1
-            // =====================================================
+            // Columna Izquierda: Jugador 1
             drawPlayerConfigPanel(
                 g2,
                 46,
-                76,
+                72,
                 254,
-                282,
+                290,
                 "JUGADOR 1 (Izquierda)",
                 match.getPlayer1(),
+                match.getPlayer1Stats(),
                 p1TeamColRect,
                 p1TeamGerRect,
                 p1TeamUsaRect,
@@ -1069,46 +1226,62 @@ public class GameWindow extends JFrame {
                 p1CustomColorRect,
                 p1AbFireRect,
                 p1AbGiantRect,
-                p1AbTeleRect
+                p1AbTeleRect,
+                p1StatsBtnRect
             );
 
-            // =====================================================
-            // COLUMNA CENTRAL: MODO DE JUEGO Y DIFICULTAD BOT
-            // =====================================================
+            // Columna Central: Modo, Estrategia del Bot y Tipo de Partido
             g2.setColor(new Color(26, 38, 62));
-            g2.fillRoundRect(312, 76, 276, 282, 16, 16);
+            g2.fillRoundRect(312, 72, 276, 290, 16, 16);
             g2.setColor(new Color(90, 130, 195));
             g2.setStroke(new BasicStroke(1.5f));
-            g2.drawRoundRect(312, 76, 276, 282, 16, 16);
+            g2.drawRoundRect(312, 72, 276, 290, 16, 16);
 
             g2.setColor(new Color(255, 215, 0));
-            g2.setFont(new Font("Arial", Font.BOLD, 14));
-            g2.drawString("INICIAR PARTIDA", 390, 98);
+            g2.setFont(new Font("Arial", Font.BOLD, 13));
+            g2.drawString("INICIAR PARTIDA", 394, 88);
 
             drawMenuButton(g2, btnModeBotRect, "1. Jugar vs Bot (Modo PVE)");
             drawMenuButton(g2, btnModePvPRect, "2. Jugar 2 Jugadores (PVP)");
             drawMenuButton(g2, btnModeLoadRect, "3. Cargar Partida Guardada");
 
             g2.setColor(new Color(210, 225, 245));
+            g2.setFont(new Font("Arial", Font.BOLD, 11));
+            g2.drawString("Comportamiento del Bot (PVE):", 362, 226);
+
+            String botStrat = match.getBotStrategyName();
+            drawSelectablePill(g2, btnBotTorpeRect, "Torpe", BotStrategy.STRATEGY_TORPE.equalsIgnoreCase(botStrat), new Color(45, 155, 75));
+            drawSelectablePill(g2, btnBotOfensivaRect, "Ofensiva", BotStrategy.STRATEGY_OFENSIVA.equalsIgnoreCase(botStrat), new Color(45, 155, 75));
+            drawSelectablePill(g2, btnBotDefensivaRect, "Defensiva", BotStrategy.STRATEGY_DEFENSIVA.equalsIgnoreCase(botStrat), new Color(45, 155, 75));
+            drawSelectablePill(g2, btnBotExpertaRect, "Experta", BotStrategy.STRATEGY_EXPERTA.equalsIgnoreCase(botStrat), new Color(45, 155, 75));
+
+            g2.setColor(new Color(210, 225, 245));
+            g2.setFont(new Font("Arial", Font.BOLD, 11));
+            g2.drawString("Tipo de Juego (Tiempo / Goles):", 360, 300);
+
+            boolean porGoles = match.isGoalLimitMode();
+            drawSelectablePill(g2, btnRuleTimeRect, "Por Tiempo", !porGoles, new Color(45, 125, 195));
+            drawSelectablePill(g2, btnRuleGoalsRect, "Por Goles", porGoles, new Color(45, 125, 195));
+
+            drawSelectablePill(g2, btnValueMinusRect, "-", false, new Color(60, 80, 120));
+            drawSelectablePill(g2, btnValuePlusRect, "+", false, new Color(60, 80, 120));
+
+            g2.setColor(Color.YELLOW);
             g2.setFont(new Font("Arial", Font.BOLD, 12));
-            g2.drawString("Dificultad del Bot AI (Modo PVE):", 355, 286);
+            String ruleVal = porGoles ? ("Meta: " + match.getGoalLimit() + " goles") : ("Tiempo: " + match.getConfiguredDuration() + "s");
+            FontMetrics fmRule = g2.getFontMetrics();
+            g2.drawString(ruleVal, 450 - (fmRule.stringWidth(ruleVal) / 2), 350);
 
-            int dif = match.getDifficultyLevel();
-            drawSelectablePill(g2, btnDifEasyRect, "Fácil", dif == BotAI.DIFFICULTY_EASY, new Color(45, 155, 75));
-            drawSelectablePill(g2, btnDifNormalRect, "Normal", dif == BotAI.DIFFICULTY_NORMAL, new Color(45, 155, 75));
-            drawSelectablePill(g2, btnDifHardRect, "Difícil", dif == BotAI.DIFFICULTY_HARD, new Color(45, 155, 75));
-
-            // =====================================================
-            // COLUMNA DERECHA: CONFIGURACIÓN JUGADOR 2 / BOT AI
-            // =====================================================
+            // Columna Derecha: Jugador 2 / Bot AI
             drawPlayerConfigPanel(
                 g2,
                 600,
-                76,
+                72,
                 254,
-                282,
+                290,
                 "JUGADOR 2 / BOT AI (Derecha)",
                 match.getPlayer2(),
+                match.getPlayer2Stats(),
                 p2TeamColRect,
                 p2TeamGerRect,
                 p2TeamUsaRect,
@@ -1116,12 +1289,11 @@ public class GameWindow extends JFrame {
                 p2CustomColorRect,
                 p2AbFireRect,
                 p2AbGiantRect,
-                p2AbTeleRect
+                p2AbTeleRect,
+                p2StatsBtnRect
             );
 
-            // =====================================================
-            // FILA INFERIOR: SELECCIÓN DE ESTADIO
-            // =====================================================
+            // Fila Inferior: Selección de Estadio
             g2.setColor(new Color(26, 38, 62));
             g2.fillRoundRect(46, 368, 808, 108, 16, 16);
             g2.setColor(new Color(90, 130, 195));
@@ -1170,6 +1342,7 @@ public class GameWindow extends JFrame {
             int ph,
             String headerTitle,
             Character ch,
+            PlayerStats stats,
             Rectangle teamColRect,
             Rectangle teamGerRect,
             Rectangle teamUsaRect,
@@ -1177,7 +1350,8 @@ public class GameWindow extends JFrame {
             Rectangle customColorRect,
             Rectangle abFireRect,
             Rectangle abGiantRect,
-            Rectangle abTeleRect
+            Rectangle abTeleRect,
+            Rectangle statsBtnRect
         ) {
             g2.setColor(new Color(26, 38, 62));
             g2.fillRoundRect(x, y, pw, ph, 16, 16);
@@ -1185,33 +1359,29 @@ public class GameWindow extends JFrame {
             g2.setStroke(new BasicStroke(1.5f));
             g2.drawRoundRect(x, y, pw, ph, 16, 16);
 
-            // Encabezado y miniatura de camiseta actual
             g2.setColor(new Color(255, 215, 0));
-            g2.setFont(new Font("Arial", Font.BOLD, 13));
-            g2.drawString(headerTitle, x + 14, y + 22);
+            g2.setFont(new Font("Arial", Font.BOLD, 12));
+            g2.drawString(headerTitle, x + 14, y + 20);
 
-            // Miniatura de camiseta + insignia de equipo
             Color shirt = ch.getShirtColor();
             g2.setColor(shirt);
-            g2.fillRoundRect(x + pw - 42, y + 8, 28, 20, 6, 6);
+            g2.fillRoundRect(x + pw - 42, y + 7, 28, 18, 6, 6);
             g2.setColor(Color.WHITE);
             g2.setStroke(new BasicStroke(1.5f));
-            g2.drawRoundRect(x + pw - 42, y + 8, 28, 20, 6, 6);
+            g2.drawRoundRect(x + pw - 42, y + 7, 28, 18, 6, 6);
 
-            // 1. Selector de Equipo (Colombia, Alemania, USA)
             String teamName = ch.getTeam().getName();
             g2.setColor(new Color(210, 225, 245));
             g2.setFont(new Font("Arial", Font.BOLD, 11));
-            g2.drawString("Equipo: " + teamName + " [" + ch.getTeam().getCode() + "]", x + 14, y + 46);
+            g2.drawString("Equipo: " + teamName + " [" + ch.getTeam().getCode() + "]", x + 14, y + 42);
 
             drawSelectablePill(g2, teamColRect, "Colombia", Team.TEAM_COLOMBIA.equalsIgnoreCase(teamName), new Color(215, 165, 0));
             drawSelectablePill(g2, teamGerRect, "Alemania", Team.TEAM_ALEMANIA.equalsIgnoreCase(teamName), new Color(80, 90, 110));
             drawSelectablePill(g2, teamUsaRect, "USA", Team.TEAM_USA.equalsIgnoreCase(teamName), new Color(35, 75, 165));
 
-            // 2. Editor de Color de Camiseta
             g2.setColor(new Color(210, 225, 245));
             g2.setFont(new Font("Arial", Font.BOLD, 11));
-            g2.drawString("Color de Camiseta:", x + 14, y + 100);
+            g2.drawString("Color de Camiseta:", x + 14, y + 90);
 
             for (int i = 0; i < colorSwatches.length; i++) {
                 Rectangle sr = colorSwatches[i];
@@ -1226,11 +1396,10 @@ public class GameWindow extends JFrame {
             }
             drawSelectablePill(g2, customColorRect, "Editar Color", false, new Color(60, 85, 130));
 
-            // 3. Selector de Poder Especial (con muestra del color de aura)
             String currentAb = ch.getSpecialAbility() != null ? ch.getSpecialAbility().getName() : Ability.ABILITY_FIRE_STRIKE;
             g2.setColor(new Color(210, 225, 245));
             g2.setFont(new Font("Arial", Font.BOLD, 11));
-            g2.drawString("Poder Especial y Aura:", x + 14, y + 150);
+            g2.drawString("Poder Especial y Aura:", x + 14, y + 132);
 
             drawAbilityOption(
                 g2,
@@ -1253,6 +1422,21 @@ public class GameWindow extends JFrame {
                 new Color(0, 220, 255),
                 Ability.ABILITY_TELEPORT.equalsIgnoreCase(currentAb)
             );
+
+            // Resumen y botón de mejoras de estadísticas (1 a 10)
+            g2.setColor(new Color(185, 220, 255));
+            g2.setFont(new Font("Arial", Font.PLAIN, 10));
+            String statSummary = "VEL:" + stats.getSpeed() + "  SAL:" + stats.getJump() +
+                                 "  PAT:" + stats.getKick() + "  POD:" + stats.getPower();
+            g2.drawString(statSummary, x + 16, y + 245);
+
+            drawSelectablePill(
+                g2,
+                statsBtnRect,
+                "Mejorar Estadísticas (Pts: " + stats.getAvailablePoints() + ")",
+                stats.getAvailablePoints() > 0,
+                new Color(140, 85, 20)
+            );
         }
 
         private void drawAbilityOption(Graphics2D g2, Rectangle r, String label, Color auraDotColor, boolean selected) {
@@ -1268,15 +1452,14 @@ public class GameWindow extends JFrame {
             g2.setStroke(new BasicStroke(selected ? 2.2f : 1.0f));
             g2.drawRoundRect(r.x, r.y, r.width, r.height, 8, 8);
 
-            // Esfera brillante que muestra el color del aura del poder
             g2.setColor(new Color(auraDotColor.getRed(), auraDotColor.getGreen(), auraDotColor.getBlue(), 95));
-            g2.fillOval(r.x + 8, r.y + 5, 22, 22);
+            g2.fillOval(r.x + 8, r.y + 4, 20, 20);
             g2.setColor(auraDotColor);
-            g2.fillOval(r.x + 12, r.y + 9, 14, 14);
+            g2.fillOval(r.x + 12, r.y + 8, 12, 12);
 
             g2.setColor(selected ? Color.YELLOW : Color.WHITE);
-            g2.setFont(new Font("Arial", Font.BOLD, 12));
-            g2.drawString(label, r.x + 36, r.y + 20);
+            g2.setFont(new Font("Arial", Font.BOLD, 11));
+            g2.drawString(label, r.x + 34, r.y + 18);
         }
 
         private void drawStadiumCard(
@@ -1296,7 +1479,6 @@ public class GameWindow extends JFrame {
             }
             g2.fillRoundRect(r.x, r.y, r.width, r.height, 12, 12);
 
-            // Mini vista previa del estadio a la izquierda de la tarjeta
             g2.setColor(accentPreview);
             g2.fillRoundRect(r.x + 10, r.y + 10, 34, 20, 4, 4);
             g2.setColor(grassPreview);
@@ -1339,18 +1521,15 @@ public class GameWindow extends JFrame {
         }
 
         private void drawPauseMenu(Graphics2D g2, int w, int h) {
-            // Fondo translúcido
             g2.setColor(new Color(10, 15, 25, 210));
             g2.fillRect(0, 0, w, h);
 
-            // Marco del panel modal
             g2.setColor(new Color(25, 35, 55));
             g2.fillRoundRect(290, 80, 320, 380, 20, 20);
             g2.setColor(new Color(255, 215, 0));
             g2.setStroke(new BasicStroke(3));
             g2.drawRoundRect(290, 80, 320, 380, 20, 20);
 
-            // Título
             g2.setColor(Color.WHITE);
             g2.setFont(new Font("Arial", Font.BOLD, 26));
             g2.drawString("PARTIDO EN PAUSA", 325, 130);
@@ -1358,7 +1537,6 @@ public class GameWindow extends JFrame {
             g2.setColor(new Color(180, 195, 215));
             g2.drawString("Presiona ESC para continuar", 370, 152);
 
-            // Botones interactivos
             drawMenuButton(g2, btnResumeRect, "1. Reanudar Partido");
             drawMenuButton(g2, btnSaveRect, "2. Guardar Partida");
             drawMenuButton(g2, btnLoadRect, "3. Cargar Partida");
@@ -1398,7 +1576,13 @@ public class GameWindow extends JFrame {
             }
             FontMetrics fm = g2.getFontMetrics();
             int gx = 200 + (500 - fm.stringWidth(ganador)) / 2;
-            g2.drawString(ganador, gx, 255);
+            g2.drawString(ganador, gx, 250);
+
+            g2.setColor(new Color(200, 220, 255));
+            g2.setFont(new Font("Arial", Font.PLAIN, 13));
+            String bonusMsg = "¡Has ganado puntos de mejora para tus estadísticas!";
+            FontMetrics fmBonus = g2.getFontMetrics();
+            g2.drawString(bonusMsg, 200 + (500 - fmBonus.stringWidth(bonusMsg)) / 2, 285);
 
             drawActionButton(g2, btnPlayAgainRect, "Jugar de Nuevo [R]", new Color(40, 160, 60));
             drawActionButton(g2, btnQuitRect, "Menú Principal [Q]", new Color(180, 50, 50));
@@ -1412,7 +1596,7 @@ public class GameWindow extends JFrame {
             g2.setStroke(new BasicStroke(hover ? 2 : 1));
             g2.drawRoundRect(r.x, r.y, r.width, r.height, 10, 10);
 
-            g2.setFont(new Font("Arial", Font.BOLD, 13));
+            g2.setFont(new Font("Arial", Font.BOLD, 12));
             FontMetrics fm = g2.getFontMetrics();
             int ty = r.y + ((r.height - fm.getHeight()) / 2) + fm.getAscent();
             g2.drawString(text, r.x + 16, ty);
@@ -1436,7 +1620,6 @@ public class GameWindow extends JFrame {
             int gw = goal.getWidth();
             int gh = goal.getHeight();
 
-            // Red cuadriculada
             g2.setColor(new Color(235, 235, 235, 130));
             g2.setStroke(new BasicStroke(1));
             for (int gx = x; gx <= x + gw; gx += 12) {
@@ -1446,7 +1629,6 @@ public class GameWindow extends JFrame {
                 g2.drawLine(x, gy, x + gw, gy);
             }
 
-            // Postes y travesaño
             g2.setColor(Color.WHITE);
             g2.setStroke(new BasicStroke(5));
             g2.drawLine(x, y, x + gw, y);
@@ -1457,11 +1639,6 @@ public class GameWindow extends JFrame {
             }
         }
 
-        /**
-         * Dibuja a cualquier jugador (Player o BotAI) con su camiseta personalizada,
-         * los colores secundarios de su equipo nacional y, cuando activa un poder,
-         * el aura energética del color correspondiente a ese poder.
-         */
         private void drawCharacter(Graphics2D g2, Character ch, String tag) {
             int x = (int) ch.getX();
             int y = (int) ch.getY();
@@ -1469,25 +1646,20 @@ public class GameWindow extends JFrame {
             Color shirtColor = ch.getShirtColor();
             Team team = ch.getTeam();
 
-            // 1. AURA ENERGÉTICA DEL PODER ACTIVO
             if (ch.isAuraActive()) {
                 Color aura = ch.getAuraColor();
                 int pulse = (int) (Math.sin(ch.getAuraTickCounter() * 0.35) * 6);
 
-                // Halo externo difuso del color del poder
                 g2.setColor(new Color(aura.getRed(), aura.getGreen(), aura.getBlue(), 75));
                 g2.fillOval(x - 22 - pulse, y - 20 - pulse, 114 + (pulse * 2), 124 + (pulse * 2));
 
-                // Segundo anillo de energía intensa
                 g2.setColor(new Color(aura.getRed(), aura.getGreen(), aura.getBlue(), 135));
                 g2.fillOval(x - 12, y - 10, 94, 106);
 
-                // Contorno flameante / eléctrico
                 g2.setColor(new Color(255, 255, 255, 200));
                 g2.setStroke(new BasicStroke(2.5f));
                 g2.drawOval(x - 14 - (pulse / 2), y - 12 - (pulse / 2), 98 + pulse, 110 + pulse);
 
-                // Destellos ascendentes del aura alrededor del personaje
                 g2.setColor(aura.brighter());
                 int offset = (ch.getAuraTickCounter() * 4) % 24;
                 g2.fillOval(x - 16, y + 60 - offset, 10, 18);
@@ -1495,11 +1667,9 @@ public class GameWindow extends JFrame {
                 g2.fillOval(x + 30, y - 18 - (offset / 2), 12, 16);
             }
 
-            // 2. Sombra en el césped
             g2.setColor(new Color(0, 0, 0, 85));
             g2.fillOval(x + 6, (int) Ball.GROUND_Y - 6, 60, 14);
 
-            // 3. Camiseta con el color editable por el usuario y franja del equipo
             g2.setColor(shirtColor);
             g2.fillRoundRect(x + 20, y + 54, 32, 24, 8, 8);
             g2.setColor(team.getSecondaryColor());
@@ -1508,20 +1678,17 @@ public class GameWindow extends JFrame {
             g2.setStroke(new BasicStroke(2));
             g2.drawRoundRect(x + 20, y + 54, 32, 24, 8, 8);
 
-            // 4. Botín / Guayo
             int shoeX = right ? x + 40 : x + 4;
             g2.setColor(new Color(35, 35, 35));
             g2.fillRoundRect(shoeX, y + 74, 28, 16, 8, 8);
             g2.setColor(team.getAccentColor());
             g2.drawLine(shoeX + 5, y + 82, shoeX + 20, y + 82);
 
-            // 5. Cabeza grande estilo Head Soccer
             g2.setColor(new Color(255, 218, 185));
             g2.fillOval(x, y, 70, 60);
             g2.setColor(Color.BLACK);
             g2.drawOval(x, y, 70, 60);
 
-            // 6. Cinta deportiva en la frente con los colores del equipo seleccionado
             g2.setColor(shirtColor);
             g2.fillRect(x + 4, y + 12, 62, 10);
             g2.setColor(team.getAccentColor());
@@ -1529,7 +1696,6 @@ public class GameWindow extends JFrame {
             g2.setColor(Color.BLACK);
             g2.drawRect(x + 4, y + 12, 62, 10);
 
-            // 7. Ojo
             int eyeX = right ? x + 45 : x + 12;
             g2.setColor(Color.WHITE);
             g2.fillOval(eyeX, y + 25, 13, 13);
@@ -1537,7 +1703,6 @@ public class GameWindow extends JFrame {
             g2.fillOval(right ? eyeX + 5 : eyeX + 2, y + 28, 6, 6);
             g2.drawOval(eyeX, y + 25, 13, 13);
 
-            // 8. Etiqueta sobre la cabeza (Jugador + Equipo)
             g2.setColor(ch.isAuraActive() ? ch.getAuraColor().brighter() : Color.YELLOW);
             g2.setFont(new Font("Arial", Font.BOLD, 12));
             FontMetrics fm = g2.getFontMetrics();
@@ -1550,11 +1715,9 @@ public class GameWindow extends JFrame {
             int by = (int) ball.getY();
             int size = ball.getWidth();
 
-            // Sombra en césped
             g2.setColor(new Color(0, 0, 0, 75));
             g2.fillOval(bx + 2, groundY - 4, size - 4, 10);
 
-            // Fuego si está activo el supertiro
             if (ball.isSuperShot()) {
                 g2.setColor(new Color(255, 90, 0, 190));
                 g2.fillOval(bx - 10, by - 10, size + 20, size + 20);
@@ -1562,7 +1725,6 @@ public class GameWindow extends JFrame {
                 g2.fillOval(bx - 5, by - 5, size + 10, size + 10);
             }
 
-            // Balón
             g2.setColor(Color.WHITE);
             g2.fillOval(bx, by, size, size);
             g2.setColor(Color.BLACK);
